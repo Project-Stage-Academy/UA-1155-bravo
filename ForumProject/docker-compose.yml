@@ -1,4 +1,3 @@
-######### this version is if the Project runs on SQLite #########
 version: '3'
 
 services:
@@ -10,23 +9,11 @@ services:
     ports:
       - "8000:8000"
 
-# ######### version below is if the Project runs on Postgres #########
-# version: '3'
-
-# services:
-#   forum:
-#     build: .
-#     command: python manage.py runserver 0.0.0.0:8000
-#     volumes:
-#       - .:/forum
-#     ports:
-#       - "8000:8000"
-
-#   db:
-#     image: postgres:latest
-#     environment:
-#       POSTGRES_DB: forum_db
-#       POSTGRES_USER: forum_user
-#       POSTGRES_PASSWORD: forum_password
-#     ports:
-#       - "5432:5432"
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: forum_db
+      POSTGRES_USER: forum_user
+      POSTGRES_PASSWORD: forum_password
+    ports:
+      - "5432:5432"
