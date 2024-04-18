@@ -1,8 +1,0 @@
-##### Rename this file to .env and change values of DATABASE_PASSWORD and SECRET_KEY #####
-
-DATABASE_NAME=postgres
-DATABASE_USER=postgres
-DATABASE_PASSWORD=[your-password-here]
-DATABASE_HOST=postgres_lib
-DATABASE_PORT=5432
-SECRET_KEY='[place-secret-key-here]'
