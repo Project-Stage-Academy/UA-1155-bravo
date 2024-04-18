@@ -15,9 +15,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse("Hello, team!")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # path('authentication/', include('authentication.urls', namespace='authentication')),
-    # path('users/', include('users.urls')),
+    path('', home, name='home'),
+    
 ]
