@@ -1,19 +1,32 @@
-version: '3'
+version: "3.9"
 
 services:
-  forum:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
+  postgres_lib:
+    image: postgres:latest
+    container_name: postgres_lib
     volumes:
-      - .:/forum
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+
+  forum:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: forum
+    depends_on:
+      - postgres_lib
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    env_file:
+      - .env
     ports:
       - "8000:8000"
 
-  db:
-    image: postgres:latest
-    environment:
-      POSTGRES_DB: forum_db
-      POSTGRES_USER: forum_user
-      POSTGRES_PASSWORD: forum_password
-    ports:
-      - "5432:5432"
+volumes:
+  static_volume:
+  media_volume:
+  postgres_data:
