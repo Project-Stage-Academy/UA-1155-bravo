@@ -1,0 +1,12 @@
+#####  1.  Create in this folder file named .env
+#####  1.a Do NOT delete this ._env_READ_ME file
+#####  2.  Copy the content below to your .env file
+#####  3.  In the .env file, replace values in square brackets with your credentials
+
+
+POSTGRES_NAME=[your-database-name]
+POSTGRES_USER=[your-user]
+POSTGRES_PASSWORD=[your-password]
+POSTGRES_HOST=postgres_lib
+POSTGRES_PORT=5432
+SECRET_KEY='[place-secret-key]'
