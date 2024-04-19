@@ -24,9 +24,11 @@ def home(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name='home'),
-    path('users/', include('users.urls', namespace='users')),
-    path('profiles/', include('profiles.urls', namespace='profiles')),
-    path('projects/', include('projects.urls', namespace='projects')),
-    path('communications/', include('communications.urls', namespace='communications')),
-    path('dashboard/', include('dashboard.urls', namespace='dashboard')),
+    path('users/', include('users.urls')),
+    path('investors/', include('investors.urls')),
+    path('startups/', include('startups.urls')),
+    path('projects/', include('projects.urls')),
+    path('communications/', include('communications.urls')),
+    path('dashboard/', include('dashboard.urls')),
+    
 ]
