@@ -77,13 +77,15 @@ WSGI_APPLICATION = 'ForumProject.wsgi.application'
 
 SECRET_KEY = config('SECRET_KEY')
 
+host_name = config('POSTGRES_HOST') if 'DOCKER_ENV' in os.environ else config('DB_HOST')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('POSTGRES_NAME'),
         'USER': config('POSTGRES_USER'),
         'PASSWORD': config('POSTGRES_PASSWORD'),
-        'HOST': config('POSTGRES_HOST'),
+        'HOST': host_name,
         'PORT': config('POSTGRES_PORT'),
     }
 }

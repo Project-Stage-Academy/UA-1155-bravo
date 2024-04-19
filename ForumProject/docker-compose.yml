@@ -23,6 +23,8 @@ services:
       - media_volume:/app/media
     env_file:
       - .env
+    environment:
+      - DOCKER_ENV=true
     ports:
       - "8000:8000"
 
