@@ -8,5 +8,6 @@ POSTGRES_NAME=[your-database-name]
 POSTGRES_USER=[your-user]
 POSTGRES_PASSWORD=[your-password]
 POSTGRES_HOST=postgres_lib
+DB_HOST=localhost
 POSTGRES_PORT=5432
 SECRET_KEY='[place-secret-key]'
