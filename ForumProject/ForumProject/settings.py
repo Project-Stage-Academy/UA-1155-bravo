@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'startups',
     'projects',
     'communications',
-    'dashboard'
+    'dashboard',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
