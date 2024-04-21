@@ -1,7 +1,8 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 class Startup(models.Model):
-    startup_name = models.CharField(max_length=150)
+    startup_name = models.CharField(max_length=150, unique=True)
     # startup_logo = 
     startup_industry = models.CharField(max_length=50)
     startup_phone = models.CharField(max_length=20)
@@ -13,3 +14,8 @@ class Startup(models.Model):
 
     def __str__(self):
         return self.startup_name
+    
+    # Validate non-empty startup_name
+    def clean(self):
+        if not self.startup_name:
+            raise ValidationError("Startup name cannot be empty.")

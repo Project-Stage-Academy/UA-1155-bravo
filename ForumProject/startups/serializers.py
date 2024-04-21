@@ -14,3 +14,13 @@ class StartupSerializer(serializers.ModelSerializer):
             'startup_city',
             'startup_address'
         ]
+
+    # Validation for startup_name non-empty and uniqueness
+    def validate_startup_name(self, value):
+        value = value.strip()
+        value = value[0].upper() + value[1:]
+        if not value:
+            raise serializers.ValidationError("Startup name cannot be empty.")
+        if Startup.objects.filter(startup_name=value).exists():
+            raise serializers.ValidationError("Startup name must be unique.")
+        return value
