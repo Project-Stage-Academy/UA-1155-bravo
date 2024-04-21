@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Startup
+from django.core.exceptions import ValidationError
+import re
 
 class StartupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -7,7 +9,7 @@ class StartupSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'startup_name',
-            # 'startup_logo',
+            'startup_logo',
             'startup_industry',
             'startup_phone',
             'startup_country',
@@ -24,3 +26,5 @@ class StartupSerializer(serializers.ModelSerializer):
         if Startup.objects.filter(startup_name=value).exists():
             raise serializers.ValidationError("Startup name must be unique.")
         return value
+
+    

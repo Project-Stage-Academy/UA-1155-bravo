@@ -2,7 +2,9 @@ from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from projects.models import Project
 from .models import Startup
+
 from .serializers import StartupSerializer
 
 class StartupView(viewsets.ModelViewSet):
@@ -12,6 +14,12 @@ class StartupView(viewsets.ModelViewSet):
     # Override the destroy method to prevent deletion if startup_country starts with "U"
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.startup_country[0].lower() == "u":
-            raise PermissionDenied("Cannot delete a startup from country 'U...'.")
-        return super().destroy(request, *args, **kwargs)
+        projects = Project.objects.filter(startup_id=instance.id)
+        
+        # Checking whether the startup has open projects
+        if any(project.project_status != 'closed' for project in projects):
+            raise PermissionDenied("Cannot delete startup with ongoing projects.")
+        
+        # If the startup has all projects closed, then deletion is possible
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
