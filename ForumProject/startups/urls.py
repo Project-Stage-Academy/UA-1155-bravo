@@ -9,4 +9,5 @@ router.register('', views.StartupView)
 
 urlpatterns = [
     path('', include(router.urls))
+
 ]

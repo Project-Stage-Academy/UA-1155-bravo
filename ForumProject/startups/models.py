@@ -27,3 +27,4 @@ class Startup(models.Model):
         
     
  
+
