@@ -352,10 +352,25 @@ Write docstrings for all public:
 ...
 ```
 ```
-def func(a, b):
-    """func docstring"""
+def play_rock_paper_scissors(player_choice, comp_choice):
+    """
+    Play a round of the Rock-Paper-Scissors game.
+
+    Parameters:
+        player1_choice (str): The choice of Player 1. Should be one of 'rock', 'paper', or 'scissors'.
+        player2_choice (str): The choice of Player 2. Should be one of 'rock', 'paper', or 'scissors'.
+
+    Returns:
+        str: The result of the round. It can be one of the following:
+             - "Tie" if both players have the same choice.
+             - "Player 1 wins" if Player 1's choice wins the round.
+             - "Player 2 wins" if Player 2's choice wins the round.
+
+    """
     pass
+
 ```
+
 ```
 class MyClass:
     """MyClass docstring"""
