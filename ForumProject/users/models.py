@@ -2,13 +2,6 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
-ROLE_CHOICES = (
-    (0, 'startup'),
-    (1, 'investor'),
-    (2, 'both'),
-    (3, 'admin')
-)
-
 
 class CustomUserManager(BaseUserManager):
     """
@@ -35,7 +28,6 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
-        extra_fields.setdefault('role', 3)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -51,7 +43,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=100, unique=True)
     password = models.CharField(max_length=255)
     phone_number = models.CharField(max_length=20, unique=True)
-    role = models.IntegerField(choices=ROLE_CHOICES, default=2)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
