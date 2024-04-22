@@ -16,6 +16,7 @@ class StartupSerializer(serializers.ModelSerializer):
             'startup_city',
             'startup_address'
         ]
+        read_only_fields = ['id']
 
     # Validation for startup_name non-empty and uniqueness
     def validate_startup_name(self, value):

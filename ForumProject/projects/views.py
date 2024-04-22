@@ -5,7 +5,7 @@ from .models import Project
 from .serializers import ProjectSerializer
 
 # Create your views here.
-class ProjectView(viewsets.ModelViewSet):
+class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 

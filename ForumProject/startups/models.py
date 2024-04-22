@@ -13,7 +13,7 @@ class Startup(models.Model):
     startup_city = models.CharField(max_length=50)
     startup_address = models.CharField(max_length=150)
     startup_logo = models.ImageField(upload_to='media/startup_logos/', validators=[image_validator], null=True, blank=True)
-    id = models.AutoField(primary_key=True)
+    
     # add ForeignKey (link to UserStartup) ?
     # add ForeignKey (link to Project) ?
 
