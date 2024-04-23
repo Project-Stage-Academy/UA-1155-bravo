@@ -8,3 +8,4 @@ class TokenObtainPairView(BaseTokenObtainPairView):
 
 class TokenRefreshView(BaseTokenRefreshView):
     throttle_scope = 'token_refresh'
+
