@@ -23,9 +23,33 @@ class TokenRefreshView(BaseTokenRefreshView):
 
 
 class UserRegistrationView(APIView):
+    """
+       A view for user registration.
+
+       This view handles POST requests for user registration.
+       It receives user registration data, validates it, creates a new user if valid,
+       generates an authentication token, and sends a confirmation email to the user.
+
+       Attributes:
+       - permission_classes: The list of permission classes applied to this view.
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handle POST requests for user registration.
+
+        Parameters:
+        - request: The request object containing user registration data.
+
+        Returns:
+        - A Response object with the result of the user registration.
+            - If the registration data is valid, a new user is created, an authentication token
+            is generated, and a confirmation email is sent. Returns the serialized user data
+            with HTTP status code 201 (Created).
+            - If the registration data is invalid, returns the validation errors with
+            HTTP status code 400 (Bad Request).
+        """
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             new_user = serializer.save()
@@ -36,9 +60,34 @@ class UserRegistrationView(APIView):
 
 
 class VerifyEmailView(APIView):
+    """
+    A view for verifying user email activation tokens.
+
+    This view handles GET requests with an activation token in the URL.
+    If the token is valid and not expired, it activates the user associated with the token.
+
+    Attributes:
+    - permission_classes: The list of permission classes applied to this view.
+    """
     permission_classes = [AllowAny]
 
     def get(self, request, token):
+        """
+        Handle GET requests to verify email activation.
+
+        Parameters:
+        - request: The request object.
+        - token: The activation token extracted from the URL.
+
+        Returns:
+        - A Response object with the result of the email verification.
+            - If the token is valid and the associated user is successfully activated,
+            returns a success message with HTTP status code 200.
+            - If the token is expired, returns an error message indicating the activation has expired
+            with HTTP status code 400.
+            - If the token is invalid, returns an error message indicating an invalid token
+            with HTTP status code 400.
+        """
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, "HS256")
             user = CustomUser.objects.get(id=payload['user_id'])

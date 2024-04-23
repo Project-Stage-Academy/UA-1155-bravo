@@ -7,6 +7,23 @@ from .validators import CustomUserValidator
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
+    """
+    A serializer for user registration.
+
+    This serializer handles user registration data validation and user creation.
+
+    Fields:
+    - first_name (str): The first name of the user.
+    - last_name (str): The last name of the user.
+    - email (str): The email address of the user.
+    - password (str): The password of the user.
+    - password2 (str): Confirmation of the password.
+    - phone_number (str): The phone number of the user.
+
+    Methods:
+    - validate: Validates the registration data, ensuring password and phone number are valid.
+    - create: Creates a new user instance with the validated registration data.
+    """
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
     email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
@@ -19,6 +36,18 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'last_name', 'email', 'password', 'password2', 'phone_number']
 
     def validate(self, attrs):
+        """
+            Validate the registration data.
+
+            Parameters:
+            - attrs (dict): A dictionary containing the registration data.
+
+            Returns:
+            - dict: A dictionary containing the validated registration data.
+
+            Raises:
+            - serializers.ValidationError: If password fields don't match or password/phone number are invalid.
+        """
         password = attrs.get('password')
         password2 = attrs.get('password2')
         phone_number = attrs.get('phone_number')
@@ -40,6 +69,15 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        """
+            Create a new user instance with the validated registration data.
+
+            Parameters:
+            - validated_data (dict): A dictionary containing the validated registration data.
+
+            Returns:
+            - (CustomUser): The newly created user instance.
+        """
         user = CustomUser.objects.create(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
