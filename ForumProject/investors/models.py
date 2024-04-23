@@ -1,5 +1,6 @@
 from django.db import models
 from users.models import CustomUser
+from projects.models import Project
 from django.core.exceptions import ValidationError
 from .validation import phone_regex, image_validator
 from django_countries.fields import CountryField
@@ -28,3 +29,9 @@ class UserInvestor(models.Model):
     customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
     investor_role_id = models.IntegerField()
+
+
+class InvestorProject(models.Model):
+    investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    share = models.IntegerField()
