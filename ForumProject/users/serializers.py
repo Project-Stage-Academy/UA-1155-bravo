@@ -53,18 +53,17 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         phone_number = attrs.get('phone_number')
 
         if password != password2:
-            raise serializers.ValidationError(
-                {"password": "Password fields didn't match."})
+            raise serializers.ValidationError("Password fields didn't match.")
 
         try:
             CustomUserValidator.validate_password(password)
         except ValidationError as error:
-            raise ValueError({'password': error.detail})
+            raise serializers.ValidationError(error.detail)
 
         try:
             CustomUserValidator.validate_phone_number(phone_number)
         except ValidationError as error:
-            raise ValueError({'phone_number': error.detail})
+            raise serializers.ValidationError(error.detail)
 
         return attrs
 
@@ -78,12 +77,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             Returns:
             - (CustomUser): The newly created user instance.
         """
-        user = CustomUser.objects.create(
+        user = CustomUser.objects.create_user(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             email=validated_data['email'],
             phone_number=validated_data['phone_number'],
+            password=validated_data['password']
         )
-        user.set_password(validated_data['password'])
-        user.save()
         return user

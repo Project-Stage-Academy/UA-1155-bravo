@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.core.mail import EmailMessage
 from rest_framework.reverse import reverse
@@ -28,11 +30,16 @@ SS
         Sends an email to the user's email address containing a verification link.
         """
         verification_link = reverse('users:email-verify', kwargs={'token': str(token)})
-        absolute_url = 'http://' + site + verification_link
+        absolute_url = site + verification_link
         email = EmailMessage(
             subject='Verify your email',
             body='Hi ' + user.first_name + ' Use the link below to verify your email \n' + absolute_url,
             from_email=settings.EMAIL_HOST_USER,
             to=[user.email]
         )
-        email.send()
+        try:
+            email.send()
+        except Exception as e:
+            logging.error(f"Failed to send email to {user.email}: {str(e)}")
+
+

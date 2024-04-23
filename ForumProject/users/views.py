@@ -89,7 +89,7 @@ class VerifyEmailView(APIView):
             with HTTP status code 400.
         """
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, "HS256")
+            payload = jwt.decode(token, settings.SECRET_KEY, settings.SIMPLE_JWT['ALGORITHM'])
             user = CustomUser.objects.get(id=payload['user_id'])
             if not user.is_active:
                 user.is_active = True
