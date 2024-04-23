@@ -10,3 +10,13 @@ image_validator = FileExtensionValidator(
     allowed_extensions=['jpg', 'jpeg', 'png', 'gif'],
     message="Only files with extensions: jpg, jpeg, png, gif are allowed."
 )
+
+"""
+Validators for phone numbers and image files.
+
+Attributes:
+    phone_regex (RegexValidator): Validator for phone numbers.
+    image_validator (FileExtensionValidator): Validator for image files.
+
+These validators ensure that phone numbers and image files meet specified criteria.
+"""
