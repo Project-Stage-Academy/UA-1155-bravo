@@ -16,7 +16,7 @@ class Util:
     def send_email(site, user, token):
         """
         Send an email with a verification link to the user.
-
+SS
         Parameters:
         - site (str): The domain of the website.
         - user (CustomUser): The user object.

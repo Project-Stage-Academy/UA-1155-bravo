@@ -1,4 +1,4 @@
-from django.test import TestCase
+from unittest.mock import patch
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -6,7 +6,8 @@ from rest_framework.test import APITestCase
 
 class PostTests(APITestCase):
 
-    def test_register_user(self):
+    @patch('users.utils.Util.send_email')
+    def test_register_user(self, mock_email):
         """
         Ensure we can create a new user.
         """
@@ -31,6 +32,7 @@ class PostTests(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, expected_data)
+        mock_email.assert_called()
 
     def test_register_user_invalid(self):
         data = {
