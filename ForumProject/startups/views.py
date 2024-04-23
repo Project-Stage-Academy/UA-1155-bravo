@@ -8,11 +8,34 @@ from .serializers import StartupSerializer
 
 
 class StartupViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for interacting with Startup objects.
+
+    Attributes:
+        queryset (QuerySet): The queryset of Startup objects.
+        serializer_class (Serializer): The serializer class for Startup objects.
+    """
+    
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
 
-    # Override the destroy method to prevent deletion if startup has open projects
+
     def destroy(self, request, *args, **kwargs):
+        """
+        The destroy method, which gives access to deletion only if all projects in the startup have the status - closed.
+
+        Parameters:
+            request: The request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Response: A response indicating the result of the deletion.
+
+        Raises:
+            PermissionDenied: If the startup has ongoing projects, deletion is not allowed.
+        """
+        
         instance = self.get_object()
         projects = Project.objects.filter(startup_id=instance.id)
         
