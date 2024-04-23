@@ -2,6 +2,7 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from .validation import phone_regex, image_validator
 from django_countries.fields import CountryField
+from users.models import CustomUser
 
 
 
@@ -25,6 +26,10 @@ class Startup(models.Model):
         if not self.startup_name or not self.startup_industry or not self.startup_phone or not self.startup_city or not self.startup_address:
             raise ValidationError("All fields must be filled in: name, industry, phone, country, city, address.")
         
-    
+
+class UserStartup(models.Model):
+    customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    startup = models.ForeignKey(Startup, on_delete=models.CASCADE)
+    startup_role_id = models.IntegerField()
  
 
