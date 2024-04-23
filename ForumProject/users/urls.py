@@ -10,4 +10,5 @@ urlpatterns = [
 
     path('token/', views.TokenObtainPairView.as_view(throttle_classes=[ScopedRateThrottle]), name='token_obtain_pair'),
     path('token/refresh/', views.TokenRefreshView.as_view(throttle_classes=[ScopedRateThrottle]), name='token_refresh'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
 ]
