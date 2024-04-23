@@ -29,6 +29,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
 class TokenRefreshView(BaseTokenRefreshView):
     throttle_scope = 'token_refresh'
 
+
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
