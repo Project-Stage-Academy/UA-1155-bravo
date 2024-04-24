@@ -54,7 +54,11 @@ class UserRegistrationView(APIView):
         if serializer.is_valid():
             new_user = serializer.save()
             token = RefreshToken.for_user(new_user).access_token
-            Util.send_email(get_current_site(request).domain, new_user, token)
+            message_data = {
+                'subject': 'Verify your email',
+                'body': ' Use the link below to verify your email \n'
+            }
+            Util.send_email(get_current_site(request).domain, 'users:email-verify', new_user, token, message_data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -112,7 +116,11 @@ class PasswordRecoveryView(APIView):
             try:
                 user = CustomUser.objects.get(email=email)
                 token = RefreshToken.for_user(user).access_token
-                Util.send_recovery_email(get_current_site(request).domain, user, token)
+                message_data = {
+                    'subject': 'Password reset link',
+                    'body': ' Use the link below to reset your password \n'
+                }
+                Util.send_email(get_current_site(request).domain, 'users:password-reset', user, token, message_data)
                 return Response({'success': 'Email was sent successfully'}, status=status.HTTP_200_OK)
             except CustomUser.DoesNotExist:
                 return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
@@ -124,17 +132,18 @@ class PasswordResetView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, token):
-        return Response({'success': 'Enter new data'}, status=status.HTTP_200_OK)
+        return Response({'success': 'Enter a new password and repeat it'}, status=status.HTTP_200_OK)
 
     def post(self, request, token):
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                payload = jwt.decode(token, settings.SECRET_KEY, settings.SIMPLE_JWT['ALGORITHM'])
-                user = CustomUser.objects.get(id=payload['user_id'])
-                user.set_password(serializer.validated_data.get('password'))
-                user.save()
-                return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
+                if not request.user.is_authenticated:
+                    payload = jwt.decode(token, settings.SECRET_KEY, settings.SIMPLE_JWT['ALGORITHM'])
+                    user = CustomUser.objects.get(id=payload['user_id'])
+                    user.set_password(serializer.validated_data.get('password'))
+                    user.save()
+                    return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
             except jwt.ExpiredSignatureError as identifier:
                 return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
             except jwt.exceptions.DecodeError as identifier:

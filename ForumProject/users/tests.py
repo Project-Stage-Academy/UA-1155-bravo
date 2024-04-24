@@ -162,4 +162,4 @@ class PasswordRecoveryTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('success', response.data)
-        self.assertEqual(response.data['success'], 'Enter new data')
+        self.assertEqual(response.data['success'], 'Enter a new password and repeat it')
