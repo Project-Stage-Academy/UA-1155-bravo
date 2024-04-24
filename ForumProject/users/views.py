@@ -138,6 +138,6 @@ class PasswordResetView(APIView):
             except jwt.ExpiredSignatureError as identifier:
                 return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
             except jwt.exceptions.DecodeError as identifier:
-                return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

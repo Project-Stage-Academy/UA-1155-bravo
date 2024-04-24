@@ -7,7 +7,17 @@ from .models import CustomUser
 from .validators import CustomUserValidator
 
 
-class UserRegisterSerializer(serializers.ModelSerializer):
+class BasePasswordSerializer(serializers.ModelSerializer):
+    def validate_passwords(self, password, password2):
+        if password != password2:
+            raise serializers.ValidationError({"password2": "Password fields didn't match."})
+        try:
+            CustomUserValidator.validate_password(password)
+        except ValidationError as error:
+            raise serializers.ValidationError({"password": error.detail})
+
+
+class UserRegisterSerializer(BasePasswordSerializer):
     """
     A serializer for user registration.
 
@@ -49,20 +59,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             Raises:
             - serializers.ValidationError: If password fields don't match or password/phone number are invalid.
         """
-        password = attrs.get('password')
-        password2 = attrs.get('password2')
-        phone_number = attrs.get('phone_number')
-
-        if password != password2:
-            raise serializers.ValidationError("Password fields didn't match.")
+        self.validate_passwords(attrs.get('password'), attrs.get('password2'))
 
         try:
-            CustomUserValidator.validate_password(password)
-        except ValidationError as error:
-            raise serializers.ValidationError(error.detail)
-
-        try:
-            CustomUserValidator.validate_phone_number(phone_number)
+            CustomUserValidator.validate_phone_number(attrs.get('phone_number'))
         except ValidationError as error:
             raise serializers.ValidationError(error.detail)
 
@@ -98,7 +98,7 @@ class RecoveryEmailSerializer(serializers.ModelSerializer):
         fields = ['email']
 
 
-class PasswordResetSerializer(serializers.ModelSerializer):
+class PasswordResetSerializer(BasePasswordSerializer):
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
 
@@ -107,15 +107,5 @@ class PasswordResetSerializer(serializers.ModelSerializer):
         fields = ['password', 'password2']
 
     def validate(self, attrs):
-        password = attrs.get('password')
-        password2 = attrs.get('password2')
-
-        if password != password2:
-            raise serializers.ValidationError("Password fields didn't match.")
-
-        try:
-            CustomUserValidator.validate_password(password)
-        except ValidationError as error:
-            raise serializers.ValidationError(error.detail)
-
+        self.validate_passwords(attrs.get('password'), attrs.get('password2'))
         return attrs

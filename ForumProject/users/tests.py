@@ -11,7 +11,7 @@ from datetime import datetime
 from rest_framework_simplejwt.tokens import AccessToken
 
 
-class PostTests(APITestCase):
+class UserRegistration(APITestCase):
     def setUp(self):
         super().setUp()
         self.base_data = {
