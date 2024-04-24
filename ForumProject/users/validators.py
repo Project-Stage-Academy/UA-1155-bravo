@@ -28,16 +28,30 @@ class CustomUserValidator:
         Raises:
         - ValidationError: If the password format does not meet the requirements.
         """
+        digit, upper, lower, symbol = False, False, False, False
+        for char in password:
+            if char.isdigit():
+                digit = True
+            if char.isupper():
+                upper = True
+            if char.islower():
+                lower = True
+            if char in punctuation:
+                symbol = True
+
+        errors = []
         if len(password) < 8:
-            raise ValidationError('Password length should be longer or equal than 8')
-        if not any(symbol.isdigit() for symbol in password):
-            raise ValidationError('Password should have at least one digit')
-        if not any(symbol.isupper() for symbol in password):
-            raise ValidationError('Password should have at least one uppercase letter')
-        if not any(symbol.islower() for symbol in password):
-            raise ValidationError('Password should have at least one lowercase letter')
-        if not any(symbol in punctuation for symbol in password):
-            raise ValidationError('Password should have at least one symbol')
+            errors.append('Password length should be at least 8 characters.')
+        if not digit:
+            errors.append('Password should have at least one digit.')
+        if not upper:
+            errors.append('Password should have at least one uppercase letter.')
+        if not lower:
+            errors.append('Password should have at least one lowercase letter.')
+        if not symbol:
+            errors.append('Password should have at least one symbol.')
+        if errors:
+            raise ValidationError(' '.join(errors))
         return password
 
     @staticmethod
