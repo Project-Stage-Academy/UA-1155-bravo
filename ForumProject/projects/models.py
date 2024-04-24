@@ -36,6 +36,10 @@ class Project(models.Model):
 
 
 class InvestorProject(models.Model):
+    """
+    Model represents the relationship between an Investor and a Project,
+    including the percentage share the Investor holds in the Project.
+    """
     investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     share = models.IntegerField()
@@ -47,3 +51,12 @@ class InvestorProject(models.Model):
                 name='percentage_share_range'
             )
         ]
+
+    def clean(self):
+        """
+        Validates the InvestorProject instance.
+
+        Ensures that the share is within the valid range (0-100).
+        """
+        if self.share < 0 or self.share > 100:
+            raise ValidationError("Share percentage must be between 0 and 100.")
