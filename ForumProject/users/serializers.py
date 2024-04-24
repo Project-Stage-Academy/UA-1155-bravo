@@ -1,3 +1,4 @@
+from django.core.validators import EmailValidator
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
@@ -85,3 +86,36 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
+
+
+class RecoveryEmailSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        validators=[EmailValidator(message="Invalid email")]
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ['email']
+
+
+class PasswordResetSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['password', 'password2']
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        password2 = attrs.get('password2')
+
+        if password != password2:
+            raise serializers.ValidationError("Password fields didn't match.")
+
+        try:
+            CustomUserValidator.validate_password(password)
+        except ValidationError as error:
+            raise serializers.ValidationError(error.detail)
+
+        return attrs

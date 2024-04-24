@@ -42,4 +42,17 @@ SS
         except Exception as e:
             logging.error(f"Failed to send email to {user.email}: {str(e)}")
 
-
+    @staticmethod
+    def send_recovery_email(site, user, token):
+        verification_link = reverse('users:password-reset', kwargs={'token': str(token)})
+        absolute_url = site + verification_link
+        email = EmailMessage(
+            subject='Password reset link',
+            body='Hi ' + user.first_name + ' Use the link below to reset your password \n' + absolute_url,
+            from_email=settings.EMAIL_HOST_USER,
+            to=[user.email]
+        )
+        try:
+            email.send()
+        except Exception as e:
+            logging.error(f"Failed to send email to {user.email}: {str(e)}")

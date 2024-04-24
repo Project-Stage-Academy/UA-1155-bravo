@@ -10,7 +10,7 @@ from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObta
                                             TokenRefreshView as BaseTokenRefreshView)
 
 from .models import CustomUser
-from .serializers import UserRegisterSerializer
+from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
 from .utils import Util
 
 
@@ -101,6 +101,43 @@ class VerifyEmailView(APIView):
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class PasswordRecoveryView(APIView):
-    pass
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+
+        serializer = RecoveryEmailSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = CustomUser.objects.get(email=email)
+                token = RefreshToken.for_user(user).access_token
+                Util.send_recovery_email(get_current_site(request).domain, user, token)
+                return Response({'success': 'Email was sent successfully'}, status=status.HTTP_200_OK)
+            except CustomUser.DoesNotExist:
+                return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({'success': 'Enter new data'}, status=status.HTTP_200_OK)
+
+    def post(self, request, token):
+        serializer = PasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, settings.SIMPLE_JWT['ALGORITHM'])
+                user = CustomUser.objects.get(id=payload['user_id'])
+                user.set_password(serializer.validated_data.get('password'))
+                user.save()
+                return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
+            except jwt.ExpiredSignatureError as identifier:
+                return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
+            except jwt.exceptions.DecodeError as identifier:
+                return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
