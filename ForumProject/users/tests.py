@@ -7,14 +7,8 @@ from .models import CustomUser
 
 from rest_framework_simplejwt.tokens import RefreshToken
 
-import time
-from django.utils import timezone
-from django.test import override_settings
-from rest_framework_simplejwt.settings import api_settings
-from datetime import timedelta
 from datetime import datetime
 from rest_framework_simplejwt.tokens import AccessToken
-from jwt.exceptions import InvalidTokenError
 
 
 class PostTests(APITestCase):
