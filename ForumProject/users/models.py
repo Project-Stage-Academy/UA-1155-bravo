@@ -1,6 +1,8 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from investors.models import Investor
+from startups.models import Startup
 
 
 class CustomUserManager(BaseUserManager):
@@ -52,3 +54,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class UserInvestor(models.Model):
+    customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
+    investor_role_id = models.IntegerField()
+
+
+class UserStartup(models.Model):
+    customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    startup = models.ForeignKey(Startup, on_delete=models.CASCADE)
+    startup_role_id = models.IntegerField()

@@ -2,8 +2,6 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from .validation import phone_regex, image_validator
 from django_countries.fields import CountryField
-from users.models import CustomUser
-
 
 
 class Startup(models.Model):
@@ -27,8 +25,6 @@ class Startup(models.Model):
     startup_city = models.CharField(max_length=50)
     startup_address = models.CharField(max_length=150)
     startup_logo = models.ImageField(upload_to='media/startup_logos/', validators=[image_validator], null=True, blank=True)
-    # add ForeignKey (link to UserStartup) ?
-    # add ForeignKey (link to Project) ?
 
     def __str__(self):
         """
@@ -39,7 +35,6 @@ class Startup(models.Model):
         """
         
         return self.startup_name
-    
 
     def clean(self):
         """
@@ -51,11 +46,3 @@ class Startup(models.Model):
         
         if not self.startup_name or not self.startup_industry or not self.startup_phone or not self.startup_city or not self.startup_address:
             raise ValidationError("All fields must be filled in: name, industry, phone, country, city, address.")
-        
-
-class UserStartup(models.Model):
-    customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    startup = models.ForeignKey(Startup, on_delete=models.CASCADE)
-    startup_role_id = models.IntegerField()
- 
-

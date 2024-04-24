@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from startups.models import Startup
+from investors.models import Investor
 
 
 class Project(models.Model):
@@ -23,8 +24,6 @@ class Project(models.Model):
         ('pending', 'Pending'),
     ]
     project_status = models.CharField(max_length=20, choices=PROJECT_STATUS_CHOICES, default='open')
-    
-    
 
     def __str__(self):
         """
@@ -36,3 +35,15 @@ class Project(models.Model):
         return self.project_name
 
 
+class InvestorProject(models.Model):
+    investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    share = models.IntegerField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(share__gte=0) & models.Q(share__lte=100),
+                name='percentage_share_range'
+            )
+        ]
