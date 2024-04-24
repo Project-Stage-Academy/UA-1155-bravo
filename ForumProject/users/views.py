@@ -123,7 +123,7 @@ class PasswordRecoveryView(APIView):
 class PasswordResetView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request):
+    def get(self, request, token):
         return Response({'success': 'Enter new data'}, status=status.HTTP_200_OK)
 
     def post(self, request, token):
