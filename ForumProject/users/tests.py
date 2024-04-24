@@ -240,3 +240,33 @@ class PostTests(APITestCase):
         data['email'] = 'daniels@gmail.com'
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+class PasswordRecoveryTests(APITestCase):
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(email='test@gmail.com', password='Pa88word_')
+
+    def test_password_recovery_valid_email(self):
+        url = reverse('users:password-recovery')
+        data = {'email': 'test@gmail.com'}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['success'], 'Email was sent successfully')
+
+    def test_password_recovery_invalid_email(self):
+        url = reverse('users:password-recovery')
+        data = {'email': 'test1@gmail.com'}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['error'], 'User does not exist')
+
+    def test_password_recovery_missing_email(self):
+        url = reverse('users:password-recovery')
+        data = {}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
