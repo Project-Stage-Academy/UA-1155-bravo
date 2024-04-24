@@ -5,6 +5,17 @@ from rest_framework.test import APITestCase
 
 from .models import CustomUser
 
+from rest_framework_simplejwt.tokens import RefreshToken
+
+import time
+from django.utils import timezone
+from django.test import override_settings
+from rest_framework_simplejwt.settings import api_settings
+from datetime import timedelta
+from datetime import datetime
+from rest_framework_simplejwt.tokens import AccessToken
+from jwt.exceptions import InvalidTokenError
+
 
 class PostTests(APITestCase):
 
@@ -242,13 +253,10 @@ class PostTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-
-
-
-
 class PasswordRecoveryTests(APITestCase):
-    def setUp(self):
-        self.user = CustomUser.objects.create_user(email='test@gmail.com', password='Pa88word_')
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = CustomUser.objects.create_user(email='test@gmail.com', password='Pa88word_')
 
     def test_password_recovery_valid_email(self):
         url = reverse('users:password-recovery')
@@ -269,4 +277,35 @@ class PasswordRecoveryTests(APITestCase):
         data = {}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['email'][0], 'This field is required.')
+
+    def test_password_recovery_empty_email(self):
+        url = reverse('users:password-recovery')
+        data = {'email': ''}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data['email'][0], 'This field may not be blank.')
+
+    def test_password_recovery_no_email_field(self):
+        url = reverse('users:password-recovery')
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('email', response.data)
+
+    def test_token_validity(self):
+        refresh = RefreshToken.for_user(self.user)
+        token = str(refresh.access_token)
+
+        decoded_token = AccessToken(token)
+
+        expiration_time = datetime.utcfromtimestamp(decoded_token['exp'])
+        is_expired = expiration_time < datetime.utcnow()
+
+        self.assertFalse(is_expired)
+
+        url = reverse('users:password-reset', kwargs={'token': token})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('success', response.data)
+        self.assertEqual(response.data['success'], 'Enter new data')
