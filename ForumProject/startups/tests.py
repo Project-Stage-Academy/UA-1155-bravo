@@ -6,15 +6,17 @@ from django.test import TestCase
 from startups.models import Startup
 from users.models import CustomUser
 import random, string
+from django.db import transaction
 
 class StartupCreationTestCase(TestCase):
     
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         '''
-        Setting up pre-requisites for testing 
+        Setting up test data that does not change across tests.
         '''
         # Create a CustomUser for authentication
-        self.user = CustomUser.objects.create_user(
+        cls.user = CustomUser.objects.create_user(
             email='dummy@user.com',
             first_name='John',
             last_name='Doe',
@@ -24,53 +26,74 @@ class StartupCreationTestCase(TestCase):
         )
         
         # Get JWT token for the user
-        refresh = RefreshToken.for_user(self.user)
-        self.token = str(refresh.access_token)
+        refresh = RefreshToken.for_user(cls.user)
+        cls.token = str(refresh.access_token)
         
+        # Sample data for testing
+        cls.startup_data = {
+            'startup_name': 'Django Dribblers',
+            'startup_industry': 'IT',
+            'startup_phone': '+3801234567',
+            'startup_country': 'UA',
+            'startup_city': 'Lviv',
+            'startup_address': 'I Franka 123'
+        }
+    
+    
+    def setUp(self):
+        '''
+        Setup that is executed before each test case.
+        '''
         # Set up the test client and authenticate with the token
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
-        
-        # Sample data for testing
-        self.startup_data = {
-                            'startup_name': 'Django Dribblers',
-                            'startup_industry': 'IT',
-                            'startup_phone': '+3801234567',
-                            'startup_country': 'UA',
-                            'startup_city': 'Lviv',
-                            'startup_address': 'I Franka 123'
-                        }
+    
+    
+    def create_startup(self, data):
+        '''
+        Helper method to create a Startup with given data.
+        '''
+        return self.client.post(reverse('startups:startup-list'), data, format='json')
+    
+    
+    def assert_failure(self, data, expected_objects=0):
+        '''
+        Helper method to verify the Startup creation fails as expected
+        '''
+        response = self.create_startup(data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Startup.objects.count(), expected_objects)
 
-
+    @transaction.atomic
     def test_ok_create_startup(self):
         '''
-        Tested creation of one Startup
+        Tested creation of one Startup.
         '''
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
+        response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Startup.objects.count(), 1)
         self.assertEqual(Startup.objects.first().startup_name, 'Django Dribblers')
 
-
+    @transaction.atomic
     def test_ok_create_two_startups(self):
         '''
         Tested creation of two Startups
         '''
         # Create first Startup
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
+        response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Startup.objects.count(), 1)
         
         # Create second Startup
         self.startup_data['startup_name'] = 'Python catchers'
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
+        response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Startup.objects.count(), 2)
 
         self.assertEqual(Startup.objects.filter(startup_name='Django Dribblers').exists(), True)
         self.assertEqual(Startup.objects.filter(startup_name='Python catchers').exists(), True)
 
-    
+    @transaction.atomic
     def test_fail_create_startup_duplicate_name(self):
         '''
         Two cases are tested - with completele identical startup_name
@@ -80,17 +103,13 @@ class StartupCreationTestCase(TestCase):
         Startup.objects.create(**self.startup_data)
         
         # Attempt to create a Startup with the same name
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 1)
+        self.assert_failure(self.startup_data, 1)
 
         # Attempt to create a Startup with the same name AND leading whitespaces
         self.startup_data['startup_name'] = '  ' + self.startup_data['startup_name']
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 1)
+        self.assert_failure(self.startup_data, 1)
 
-    
+    @transaction.atomic
     def test_fail_field_length_exceeded(self):
         '''
         The function iterates over Startup's aattributes, each time assigning to 
@@ -111,41 +130,31 @@ class StartupCreationTestCase(TestCase):
                 self.startup_data[key] = '+' + ''.join(random.choices(string.digits, k=max_length[key] + 1))
             else:
                 self.startup_data[key] = ''.join(random.choices(string.ascii_letters, k=max_length[key] + 1))
-            response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-            self.assertEqual(Startup.objects.count(), 0)
+            self.assert_failure(self.startup_data)
             self.startup_data[key] = original_value
 
-    
+    @transaction.atomic
     def test_fail_invalid_phone(self):
         '''
         The function checks that creation of a Startup with invalid phone number fails
         '''
         # non-numeric symbols
         self.startup_data['startup_phone'] = '+123abc457891'
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assert_failure(self.startup_data)
 
         # absent leading '+' sign
         self.startup_data['startup_phone'] = '1234567891012'
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assert_failure(self.startup_data)
 
         # less than 9 digits (validator restraint fails)
         self.startup_data['startup_phone'] = '+1234'
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assert_failure(self.startup_data)
 
         # more than 17 digits (validator restraint fails)
         self.startup_data['startup_phone'] = '+23456789112345678'
-        response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assert_failure(self.startup_data)
 
-
+    @transaction.atomic
     def test_fail_field_mandatory_attr_empty(self):
         '''
         The function iterates over Startup's aattributes, each time assigning to 
@@ -154,7 +163,5 @@ class StartupCreationTestCase(TestCase):
         for key, value in self.startup_data.items():
             original_value = self.startup_data[key]
             self.startup_data[key] = ''
-            response = self.client.post(reverse('startups:startup-list'), self.startup_data, format='json')
-            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-            self.assertEqual(Startup.objects.count(), 0)
+            self.assert_failure(self.startup_data)
             self.startup_data[key] = original_value
