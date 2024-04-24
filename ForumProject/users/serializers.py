@@ -25,8 +25,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     - validate: Validates the registration data, ensuring password and phone number are valid.
     - create: Creates a new user instance with the validated registration data.
     """
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
+    first_name = serializers.CharField(required=True, max_length=20)
+    last_name = serializers.CharField(required=True, max_length=20)
     email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)

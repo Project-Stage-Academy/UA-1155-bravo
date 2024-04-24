@@ -71,7 +71,7 @@ class VerifyEmailView(APIView):
     """
     permission_classes = [AllowAny]
 
-    def get(self, request, token):
+    def post(self, request, token):
         """
         Handle GET requests to verify email activation.
 
