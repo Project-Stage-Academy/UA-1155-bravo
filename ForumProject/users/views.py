@@ -246,7 +246,8 @@ class PasswordResetView(APIView):
                     return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
             except jwt.ExpiredSignatureError as identifier:
                 return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
-            except jwt.exceptions.DecodeError as identifier:
+            #added CustomUser.DoesNotExist as a sign of invalid token
+            except (jwt.exceptions.DecodeError, CustomUser.DoesNotExist):
                 return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
