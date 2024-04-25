@@ -28,16 +28,6 @@ class StartupCreationTestCase(TestCase):
         # Get JWT token for the user
         refresh = RefreshToken.for_user(cls.user)
         cls.token = str(refresh.access_token)
-        
-        # Sample data for testing
-        cls.startup_data = {
-            'startup_name': 'Django Dribblers',
-            'startup_industry': 'IT',
-            'startup_phone': '+3801234567',
-            'startup_country': 'UA',
-            'startup_city': 'Lviv',
-            'startup_address': 'I Franka 123'
-        }
     
     
     def setUp(self):
@@ -47,6 +37,16 @@ class StartupCreationTestCase(TestCase):
         # Set up the test client and authenticate with the token
         self.client = APIClient()
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+
+        # Sample data for testing
+        self.startup_data = {
+            'startup_name': 'Django Dribblers',
+            'startup_industry': 'IT',
+            'startup_phone': '+3801234567',
+            'startup_country': 'UA',
+            'startup_city': 'Lviv',
+            'startup_address': 'I Franka 123'
+        }
     
     
     def create_startup(self, data):
@@ -64,7 +64,6 @@ class StartupCreationTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Startup.objects.count(), expected_objects)
 
-    @transaction.atomic
     def test_ok_create_startup(self):
         '''
         Tested creation of one Startup.
@@ -112,7 +111,7 @@ class StartupCreationTestCase(TestCase):
     @transaction.atomic
     def test_fail_field_length_exceeded(self):
         '''
-        The function iterates over Startup's aattributes, each time assigning to 
+        The function iterates over Startup's attributes, each time assigning to 
         an attribute a value that exceeds the max_length restraint, and then the 
         test is run
         '''
