@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObtainPairView,
                                             TokenRefreshView as BaseTokenRefreshView)
+from django.http import JsonResponse
+from datetime import timedelta
 
 from .models import CustomUser
 from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
@@ -17,9 +19,45 @@ from .utils import Util
 class TokenObtainPairView(BaseTokenObtainPairView):
     throttle_scope = 'token_obtain'
 
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        token = response.data.get('access')
+
+        if token:
+            # Set the token in a cookie with appropriate settings
+            response.set_cookie(
+                'jwt_token',
+                token,
+                max_age=300,  # Token lifetime (5 minutes)
+                httponly=True,  # To prevent JavaScript access
+                secure=True,  # If using HTTPS
+                samesite='Strict',  #  helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
+            )
+
+        return response
+
 
 class TokenRefreshView(BaseTokenRefreshView):
     throttle_scope = 'token_refresh'
+    
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        # Get the refreshed token from the response data
+        token = response.data.get('access')
+
+        if token:
+            response.set_cookie(
+                'jwt_token',
+                token,
+                max_age=300,
+                httponly=True,
+                secure=True,
+                samesite='Strict',
+            )
+
+        return response
 
 
 class UserRegistrationView(APIView):
@@ -106,6 +144,35 @@ class VerifyEmailView(APIView):
 
 
 class PasswordRecoveryView(APIView):
+    """
+    API endpoint for initiating the password recovery process by sending a recovery email to the user's email address.
+
+    Request Payload:
+    - email: The email address of the user requesting password recovery.
+
+    Response:
+    - If the email is valid and corresponds to an existing user:
+        - Status Code: 200
+        - Response Body: {'success': 'Email was sent successfully'}
+    - If the email is not valid or does not correspond to any user:
+        - Status Code: 400
+        - Response Body: {'error': 'User does not exist'}
+
+    Permissions:
+    - AllowAny: Publicly accessible endpoint.
+
+    Methods:
+    - POST: Initiates the password recovery process by sending a recovery email to the user's email address.
+
+    Example Usage:
+    ```
+    POST /api/password-recovery/
+    {
+        "email": "example@example.com"
+    }
+    ```
+
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -130,12 +197,44 @@ class PasswordRecoveryView(APIView):
 
 
 class PasswordResetView(APIView):
+    """
+    API endpoint for resetting the password using a token received via email.
+
+    Permissions:
+    - AllowAny: Publicly accessible endpoint.
+
+    Methods:
+    - GET: Returns a success response indicating to enter new data for password reset.
+    - POST: Validates the token and resets the user's password.
+
+    """
     permission_classes = [AllowAny]
 
     def get(self, request, token):
+        """
+        Returns a success response indicating to enter new data for password reset.
+
+        Parameters:
+        - request (HttpRequest): The HTTP request object.
+
+        Returns:
+        - Response: JSON response indicating the success of the operation.
+
+        """
         return Response({'success': 'Enter a new password and repeat it'}, status=status.HTTP_200_OK)
 
     def post(self, request, token):
+        """
+        Validates the token and resets the user's password.
+
+        Parameters:
+        - request (HttpRequest): The HTTP request object.
+        - token (str): The token received via email for password reset.
+
+        Returns:
+        - Response: JSON response indicating the result of the password reset operation.
+
+        """
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
             try:
@@ -151,3 +250,13 @@ class PasswordResetView(APIView):
                 return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+    
+
+# boilerplate (for a future "logout" endpoint) to delete the JWT token from cookies
+def logout(request):
+    response = JsonResponse({"message": "Logged out"})
+    response.delete_cookie('jwt_token')  # Delete the JWT cookie
+    return response
+
