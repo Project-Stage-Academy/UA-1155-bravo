@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObtainPairView,
                                             TokenRefreshView as BaseTokenRefreshView)
@@ -14,6 +15,24 @@ from datetime import timedelta
 from .models import CustomUser
 from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
 from .utils import Util
+
+
+class InvestorStatus(APIView):
+    def get(self, request, *args, **kwargs):
+        user, _ = JWTAuthentication().authenticate(request)
+        if user:
+            token = RefreshToken.for_user(user)
+            token['status'] = 'investor'
+            new_access_token = str(token.access_token)
+            new_refresh_token = str(token)
+
+            return Response(
+                {"message": "Token updated successfully", "access_token": new_access_token,
+                 "refresh_token": new_refresh_token},
+                status=status.HTTP_200_OK
+            )
+        else:
+            return Response({"error": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class TokenObtainPairView(BaseTokenObtainPairView):
@@ -32,7 +51,8 @@ class TokenObtainPairView(BaseTokenObtainPairView):
                 max_age=300,  # Token lifetime (5 minutes)
                 httponly=True,  # To prevent JavaScript access
                 secure=True,  # If using HTTPS
-                samesite='Strict',  #  helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
+                samesite='Strict',
+                # helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
             )
 
         return response
@@ -40,7 +60,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
 
 class TokenRefreshView(BaseTokenRefreshView):
     throttle_scope = 'token_refresh'
-    
+
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
@@ -251,11 +271,8 @@ class PasswordResetView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-    
-
 # boilerplate (for a future "logout" endpoint) to delete the JWT token from cookies
 def logout(request):
     response = JsonResponse({"message": "Logged out"})
     response.delete_cookie('jwt_token')  # Delete the JWT cookie
     return response
-

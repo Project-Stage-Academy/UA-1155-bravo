@@ -2,6 +2,7 @@ from django.core.validators import EmailValidator
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import CustomUser
 from .validators import CustomUserValidator
@@ -153,3 +154,11 @@ class PasswordResetSerializer(BasePasswordSerializer):
         """
         self.validate_passwords(attrs.get('password'), attrs.get('password2'))
         return attrs
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['status'] = ''
+        return token
