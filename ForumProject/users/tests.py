@@ -112,6 +112,7 @@ class PasswordRecoveryTests(APITestCase):
     def setUpTestData(cls):
         cls.user = CustomUser.objects.create_user(email='test@gmail.com', password='Pa88word_')
         cls.url = reverse('users:password-recovery')
+        cls.token = 'valid_token'
 
     def test_password_recovery_valid_email(self):
         data = {'email': 'test@gmail.com'}
@@ -142,20 +143,10 @@ class PasswordRecoveryTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('email', response.data)
 
-    def test_token_validity(self):
-        refresh = RefreshToken.for_user(self.user)
-        token = str(refresh.access_token)
-
-        decoded_token = AccessToken(token)
-
-        expiration_time = datetime.utcfromtimestamp(decoded_token['exp'])
-        is_expired = expiration_time < datetime.utcnow()
-
-        self.assertFalse(is_expired)
-
-        url = reverse('users:password-reset', kwargs={'token': token})
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('success', response.data)
-        self.assertEqual(response.data['success'], 'Enter a new password and repeat it')
+    def test_invalid_token(self):
+        self.client.session['user_id'] = self.user.id + 1
+        self.url = reverse('users:password-reset', args=(self.token,))
+        data = {'password': 'Pa88word_2', 'password2': 'Pa88word_2'}
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data['error'], 'Invalid token')
