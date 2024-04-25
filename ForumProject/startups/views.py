@@ -8,6 +8,7 @@ from .serializers import StartupSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import StartupFilter
 from rest_framework import filters
+from rest_framework.pagination import PageNumberPagination
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -49,6 +50,23 @@ class StartupViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+class StandardResultsSetPagination(PageNumberPagination):
+    """
+    A standard pagination class for paginating results.
+
+    Inherits:
+        PageNumberPagination: Base class for pagination.
+
+    Attributes:
+        page_size (int): The default page size for pagination.
+        page_size_query_param (str): The query parameter to specify the page size.
+        max_page_size (int): The maximum allowed page size for pagination.
+
+    """    
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    
 
 class StartupList(generics.ListAPIView):
     """
@@ -67,6 +85,7 @@ class StartupList(generics.ListAPIView):
     serializer_class = StartupSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = StartupFilter
+    pagination_class = StandardResultsSetPagination
     
     
 class StartupListDetailfilter(generics.ListAPIView):
