@@ -123,9 +123,10 @@ class PasswordRecoveryView(APIView):
                 Util.send_email(get_current_site(request).domain, 'users:password-reset', user, token, message_data)
                 return Response({'success': 'Email was sent successfully'}, status=status.HTTP_200_OK)
             except CustomUser.DoesNotExist:
-                return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                #return 200 instead of HTTP_400_BAD_REQUEST
+                return Response({'error': 'User does not exist'}, status=status.HTTP_200_OK)
+        # return 200 instead of HTTP_400_BAD_REQUEST
+        return Response(serializer.errors, status=status.HTTP_200_OK)
 
 
 class PasswordResetView(APIView):

@@ -111,39 +111,35 @@ class PasswordRecoveryTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = CustomUser.objects.create_user(email='test@gmail.com', password='Pa88word_')
+        cls.url = reverse('users:password-recovery')
 
     def test_password_recovery_valid_email(self):
-        url = reverse('users:password-recovery')
         data = {'email': 'test@gmail.com'}
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['success'], 'Email was sent successfully')
 
     def test_password_recovery_invalid_email(self):
-        url = reverse('users:password-recovery')
         data = {'email': 'test1@gmail.com'}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['error'], 'User does not exist')
 
     def test_password_recovery_missing_email(self):
-        url = reverse('users:password-recovery')
         data = {}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['email'][0], 'This field is required.')
 
     def test_password_recovery_empty_email(self):
-        url = reverse('users:password-recovery')
         data = {'email': ''}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(self.url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['email'][0], 'This field may not be blank.')
 
     def test_password_recovery_no_email_field(self):
-        url = reverse('users:password-recovery')
-        response = self.client.post(url, format='json')
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(self.url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('email', response.data)
 
     def test_token_validity(self):
