@@ -106,6 +106,35 @@ class VerifyEmailView(APIView):
 
 
 class PasswordRecoveryView(APIView):
+    """
+    API endpoint for initiating the password recovery process by sending a recovery email to the user's email address.
+
+    Request Payload:
+    - email: The email address of the user requesting password recovery.
+
+    Response:
+    - If the email is valid and corresponds to an existing user:
+        - Status Code: 200
+        - Response Body: {'success': 'Email was sent successfully'}
+    - If the email is not valid or does not correspond to any user:
+        - Status Code: 400
+        - Response Body: {'error': 'User does not exist'}
+
+    Permissions:
+    - AllowAny: Publicly accessible endpoint.
+
+    Methods:
+    - POST: Initiates the password recovery process by sending a recovery email to the user's email address.
+
+    Example Usage:
+    ```
+    POST /api/password-recovery/
+    {
+        "email": "example@example.com"
+    }
+    ```
+
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -129,12 +158,44 @@ class PasswordRecoveryView(APIView):
 
 
 class PasswordResetView(APIView):
+    """
+    API endpoint for resetting the password using a token received via email.
+
+    Permissions:
+    - AllowAny: Publicly accessible endpoint.
+
+    Methods:
+    - GET: Returns a success response indicating to enter new data for password reset.
+    - POST: Validates the token and resets the user's password.
+
+    """
     permission_classes = [AllowAny]
 
     def get(self, request, token):
+        """
+        Returns a success response indicating to enter new data for password reset.
+
+        Parameters:
+        - request (HttpRequest): The HTTP request object.
+
+        Returns:
+        - Response: JSON response indicating the success of the operation.
+
+        """
         return Response({'success': 'Enter a new password and repeat it'}, status=status.HTTP_200_OK)
 
     def post(self, request, token):
+        """
+        Validates the token and resets the user's password.
+
+        Parameters:
+        - request (HttpRequest): The HTTP request object.
+        - token (str): The token received via email for password reset.
+
+        Returns:
+        - Response: JSON response indicating the result of the password reset operation.
+
+        """
         serializer = PasswordResetSerializer(data=request.data)
         if serializer.is_valid():
             try:

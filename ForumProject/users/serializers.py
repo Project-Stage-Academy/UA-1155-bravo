@@ -8,7 +8,25 @@ from .validators import CustomUserValidator
 
 
 class BasePasswordSerializer(serializers.ModelSerializer):
+    """
+    Base serializer for password-related operations.
+
+    This serializer provides a method to validate passwords and their confirmation.
+
+    """
     def validate_passwords(self, password, password2):
+        """
+        Validates the password and its confirmation.
+
+        Parameters:
+        - password (str): The password entered by the user.
+        - password2 (str): The confirmation password entered by the user.
+
+        Raises:
+        - serializers.ValidationError: If the password and its confirmation do not match,
+          or if the password fails the custom validation.
+
+        """
         if password != password2:
             raise serializers.ValidationError({"password2": "Password fields didn't match."})
         try:
@@ -48,16 +66,16 @@ class UserRegisterSerializer(BasePasswordSerializer):
 
     def validate(self, attrs):
         """
-            Validate the registration data.
+        Validate the registration data.
 
-            Parameters:
-            - attrs (dict): A dictionary containing the registration data.
+        Parameters:
+        - attrs (dict): A dictionary containing the registration data.
 
-            Returns:
-            - dict: A dictionary containing the validated registration data.
+        Returns:
+        - dict: A dictionary containing the validated registration data.
 
-            Raises:
-            - serializers.ValidationError: If password fields don't match or password/phone number are invalid.
+        Raises:
+        - serializers.ValidationError: If password fields don't match or password/phone number are invalid.
         """
         self.validate_passwords(attrs.get('password'), attrs.get('password2'))
 
@@ -70,13 +88,13 @@ class UserRegisterSerializer(BasePasswordSerializer):
 
     def create(self, validated_data):
         """
-            Create a new user instance with the validated registration data.
+        Create a new user instance with the validated registration data.
 
-            Parameters:
-            - validated_data (dict): A dictionary containing the validated registration data.
+        Parameters:
+        - validated_data (dict): A dictionary containing the validated registration data.
 
-            Returns:
-            - (CustomUser): The newly created user instance.
+        Returns:
+        - (CustomUser): The newly created user instance.
         """
         user = CustomUser.objects.create_user(
             first_name=validated_data['first_name'],
@@ -89,6 +107,13 @@ class UserRegisterSerializer(BasePasswordSerializer):
 
 
 class RecoveryEmailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling email addresses during password recovery.
+
+    This serializer validates the email address provided by the user
+    during the password recovery process.
+
+    """
     email = serializers.EmailField(
         validators=[EmailValidator(message="Invalid email")]
     )
@@ -99,6 +124,12 @@ class RecoveryEmailSerializer(serializers.ModelSerializer):
 
 
 class PasswordResetSerializer(BasePasswordSerializer):
+    """
+    Serializer for resetting the user's password.
+
+    This serializer handles validation of the password reset data.
+    It ensures that the password and its confirmation match.
+    """
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
 
@@ -107,5 +138,18 @@ class PasswordResetSerializer(BasePasswordSerializer):
         fields = ['password', 'password2']
 
     def validate(self, attrs):
+        """
+        Validates the password and its confirmation.
+
+        Parameters:
+        - attrs (dict): The dictionary containing password and password2 fields.
+
+        Returns:
+        - attrs (dict): The validated dictionary containing password and password2 fields.
+
+        Raises:
+        - serializers.ValidationError: If the password and its confirmation do not match.
+
+        """
         self.validate_passwords(attrs.get('password'), attrs.get('password2'))
         return attrs
