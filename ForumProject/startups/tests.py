@@ -6,7 +6,6 @@ from django.test import TestCase
 from startups.models import Startup
 from users.models import CustomUser
 import random, string
-from django.db import transaction
 
 class StartupCreationTestCase(TestCase):
     
@@ -73,7 +72,6 @@ class StartupCreationTestCase(TestCase):
         self.assertEqual(Startup.objects.count(), 1)
         self.assertEqual(Startup.objects.first().startup_name, 'Django Dribblers')
 
-    @transaction.atomic
     def test_ok_create_two_startups(self):
         '''
         Tested creation of two Startups
@@ -92,7 +90,6 @@ class StartupCreationTestCase(TestCase):
         self.assertEqual(Startup.objects.filter(startup_name='Django Dribblers').exists(), True)
         self.assertEqual(Startup.objects.filter(startup_name='Python catchers').exists(), True)
 
-    @transaction.atomic
     def test_fail_create_startup_duplicate_name(self):
         '''
         Two cases are tested - with completele identical startup_name
@@ -108,7 +105,6 @@ class StartupCreationTestCase(TestCase):
         self.startup_data['startup_name'] = '  ' + self.startup_data['startup_name']
         self.assert_failure(self.startup_data, 1)
 
-    @transaction.atomic
     def test_fail_field_length_exceeded(self):
         '''
         The function iterates over Startup's attributes, each time assigning to 
@@ -132,7 +128,6 @@ class StartupCreationTestCase(TestCase):
             self.assert_failure(self.startup_data)
             self.startup_data[key] = original_value
 
-    @transaction.atomic
     def test_fail_invalid_phone(self):
         '''
         The function checks that creation of a Startup with invalid phone number fails
@@ -153,7 +148,6 @@ class StartupCreationTestCase(TestCase):
         self.startup_data['startup_phone'] = '+23456789112345678'
         self.assert_failure(self.startup_data)
 
-    @transaction.atomic
     def test_fail_field_mandatory_attr_empty(self):
         '''
         The function iterates over Startup's aattributes, each time assigning to 
