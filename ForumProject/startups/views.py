@@ -1,11 +1,13 @@
 from django.shortcuts import render
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
 from .models import Startup
 from .serializers import StartupSerializer
-
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import StartupFilter
+from rest_framework import filters
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -47,3 +49,40 @@ class StartupViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
+class StartupList(generics.ListAPIView):
+    """
+    A view to list all startups with filters.
+
+    Inherits:
+        generics.ListAPIView
+
+    Attributes:
+        queryset (QuerySet): All startups in the database.
+        serializer_class (Serializer): Serializer class for startups.
+        filter_backends (list): List of filter backends for the view.
+        filterset_class (FilterSet): FilterSet class for startup filtering.
+    """   
+    queryset = Startup.objects.all()
+    serializer_class = StartupSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = StartupFilter
+    
+    
+class StartupListDetailfilter(generics.ListAPIView):
+    """
+    A view to search startups.
+
+    Inherits:
+        generics.ListAPIView
+
+    Attributes:
+        queryset (QuerySet): All startups in the database.
+        serializer_class (Serializer): Serializer class for startups.
+        filter_backends (list): List of filter backends for the view.
+        search_fields (list): List of fields to search against.
+    """
+    queryset = Startup.objects.all()
+    serializer_class = StartupSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['^startup_name', '^startup_industry', '=startup_country']
