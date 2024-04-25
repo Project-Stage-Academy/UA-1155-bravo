@@ -1,6 +1,8 @@
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from investors.models import Investor
+from startups.models import Startup
 
 
 class CustomUserManager(BaseUserManager):
@@ -77,6 +79,18 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     Methods:
     - __str__: Return a string representation of the user.
+
+    Custom user model representing a user of the application.
+
+    Attributes:
+        id (int): The unique identifier for the user.
+        first_name (str): The first name of the user.
+        last_name (str): The last name of the user.
+        email (str): The email address of the user.
+        phone_number (str): The phone number of the user.
+        is_active (bool): Indicates whether the user account is active.
+        is_staff (bool): Indicates whether the user has staff-level access.
+        is_superuser (bool): Indicates whether the user has superuser privileges.
     """
     id = models.BigAutoField(primary_key=True)
     first_name = models.CharField(max_length=20)
@@ -97,5 +111,39 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
         Returns:
         - str: The string representation of the user.
+        Returns a string representation of the user.
+
+        Returns:
+            str: The email address of the user.
         """
         return self.email
+
+
+class UserInvestor(models.Model):
+    """
+    Represents the relationship between a user and an investor.
+
+    Attributes:
+        customuser (CustomUser): The user associated with the investor.
+        investor (Investor): The investor associated with the user.
+        investor_role_id (int): The role ID of the user within the investor organization.
+    """
+
+    customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
+    investor_role_id = models.IntegerField()
+
+
+class UserStartup(models.Model):
+    """
+    Represents the relationship between a user and a startup.
+
+    Attributes:
+        customuser (CustomUser): The user associated with the startup.
+        startup (Startup): The startup associated with the user.
+        startup_role_id (int): The role ID of the user within the startup organization.
+    """
+
+    customuser = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    startup = models.ForeignKey(Startup, on_delete=models.CASCADE)
+    startup_role_id = models.IntegerField()
