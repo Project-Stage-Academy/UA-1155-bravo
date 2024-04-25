@@ -192,7 +192,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
         'user': '1000/day',
-        'token_obtain': '5/hour',
+        'token_obtain': '500/hour',
         'token_refresh': '10/hour',
     }
 }
@@ -240,6 +240,13 @@ SIMPLE_JWT = {
 
 
 AUTH_USER_MODEL = 'users.CustomUser'
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_PORT = config('EMAIL_PORT')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS')
 
 try:
     from .local_settings import *
