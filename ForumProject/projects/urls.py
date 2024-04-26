@@ -9,6 +9,4 @@ router.register('', views.ProjectViewSet)
 
 urlpatterns = [
     path('', include(router.urls))
-
-
 ]

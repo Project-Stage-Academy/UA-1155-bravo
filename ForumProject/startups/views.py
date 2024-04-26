@@ -40,7 +40,7 @@ class StartupViewSet(viewsets.ModelViewSet):
         projects = Project.objects.filter(startup_id=instance.id)
         
         # Checking whether the startup has open projects
-        if any(project.project_status != 'closed' for project in projects):
+        if any(project.status != 'closed' for project in projects):
             raise PermissionDenied("Cannot delete startup with ongoing projects.")
         
         # If the startup has all projects closed, then deletion is possible

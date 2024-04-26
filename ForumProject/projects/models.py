@@ -2,6 +2,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from startups.models import Startup
 from investors.models import Investor
+import os
+from django.utils.text import slugify
 
 
 class Project(models.Model):
@@ -9,22 +11,73 @@ class Project(models.Model):
     Model representing a project.
 
     Attributes:
-        project_name (str): The name of the project.
-        startup (ForeignKey): The startup associated with the project.
-        project_status (str): The status of the project, chosen from predefined choices.
-        
-    Note: This model is not finished yet.
+        name (str): The name of the Project.
+        startup (ForeignKey): The startup associated with the Project.
+        description (str): A description of the Project (up to 500 characters).
+        documentation (files): Files relating to the Project that can be uploaded.
+        status (str): The status of the Project, chosen from predefined choices.
+        created_at (date-time): date of creation of the Project.
+        updated_at (date-time): date of last modification of the Project.
+        duration (float): number of moonths which implementation of the Project is planned for.
+        budget_currency (str): currency of the Project's budget
+        budget_amount (int): amount of the Project's budget
     """
     
-    project_name = models.CharField(max_length=150, unique=True)
+    def _generate_upload_path(self, filename):
+        '''
+        The function creates a valid path for each Project's documentation upload
+        and ensures renaming of the file being uploaded if its name is not unique in 
+        the selected folder.
+        '''
+        # Replace special characters with underscores and truncate to 20 characters
+        startup_slug = slugify(self.startup.startup_name)[:20]
+        project_slug = slugify(self.name)[:20]
+
+        # Determine the folder path
+        folder_path = f"media/{startup_slug}/{project_slug}/"
+
+        # Ensure the folder exists
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Replace spaces in the filename with underscores
+        filename = filename.replace(" ", "_")
+        
+        # Create a unique file path
+        full_path = os.path.join(folder_path, filename)
+
+        # Check for existing files with the same name and create a unique name
+        if os.path.exists(full_path):
+            base, extension = os.path.splitext(filename)
+            counter = 1
+            while os.path.exists(full_path):
+                new_filename = f"{base}({counter}){extension}"
+                full_path = os.path.join(folder_path, new_filename)
+                counter += 1
+
+        return full_path
+    
+    name = models.CharField(max_length=150)
     startup = models.ForeignKey(Startup, on_delete=models.CASCADE, related_name='projects')
+    description = models.CharField(max_length=500)
+    documentation = models.FileField(upload_to=_generate_upload_path, blank=True, null=True)
     PROJECT_STATUS_CHOICES = [
         ('open', 'Open'),
         ('closed', 'Closed'),
         ('pending', 'Pending'),
     ]
-    project_status = models.CharField(max_length=20, choices=PROJECT_STATUS_CHOICES, default='open')
+    status = models.CharField(max_length=20, choices=PROJECT_STATUS_CHOICES, default='open')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    duration = models.FloatField(blank=True, null=True, verbose_name='duration (months)')
+    budget_currency = models.CharField(max_length=3, blank=True, null=True)
+    budget_amount = models.IntegerField(blank=True, null=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['startup', 'name'],
+            name='unique_project_per_startup')
+        ]
+    
     def __str__(self):
         """
         Return the name of the project.
