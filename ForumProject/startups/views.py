@@ -19,7 +19,7 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
-    permission_classes = [StartupPermission, ]
+    permission_classes = [StartupPermission,]
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -47,4 +47,3 @@ class StartupViewSet(viewsets.ModelViewSet):
         # If the startup has all projects closed, then deletion is possible
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-

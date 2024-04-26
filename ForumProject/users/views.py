@@ -5,34 +5,14 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObtainPairView,
                                             TokenRefreshView as BaseTokenRefreshView)
 from django.http import JsonResponse
-from datetime import timedelta
 
 from .models import CustomUser
 from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
 from .utils import Util
-
-
-class InvestorStatus(APIView):
-    def get(self, request, *args, **kwargs):
-        user, _ = JWTAuthentication().authenticate(request)
-        if user:
-            token = RefreshToken.for_user(user)
-            token['status'] = 'investor'
-            new_access_token = str(token.access_token)
-            new_refresh_token = str(token)
-
-            return Response(
-                {"message": "Token updated successfully", "access_token": new_access_token,
-                 "refresh_token": new_refresh_token},
-                status=status.HTTP_200_OK
-            )
-        else:
-            return Response({"error": "User not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class TokenObtainPairView(BaseTokenObtainPairView):
