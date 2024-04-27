@@ -5,6 +5,10 @@ from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
 from .models import Startup
 from .serializers import StartupSerializer
+from rest_framework.views import APIView
+from users.models import UserStartup
+
+
 
 
 class StartupViewSet(viewsets.ModelViewSet):
@@ -47,3 +51,16 @@ class StartupViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+class PostForUserStartup(APIView): 
+    
+    
+    def post(self, request, *args, **kwargs):
+        serializer = StartupSerializer(data=request.data)
+        if serializer.is_valid():  
+            startup_id = serializer.save()   
+            user = request.user
+            UserStartup.objects.create(customuser=user, startup=startup_id, startup_role_id=1) 
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

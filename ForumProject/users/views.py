@@ -91,6 +91,7 @@ class UserRegistrationView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             new_user = serializer.save()
+            
             token = RefreshToken.for_user(new_user).access_token
             message_data = {
                 'subject': 'Verify your email',

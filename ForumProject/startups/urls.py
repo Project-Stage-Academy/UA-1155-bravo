@@ -8,6 +8,9 @@ router = routers.DefaultRouter()
 router.register('', views.StartupViewSet)
 
 urlpatterns = [
-    path('', include(router.urls))
-
+    
+    
+    
+    path('post', views.PostForUserStartup.as_view(), name='check'),
+    path('', include(router.urls)),
 ]
