@@ -1,4 +1,23 @@
 from django.contrib import admin
-from .models import Project
+from .models import Project, ProjectFiles
 
-admin.site.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ['name',
+                    'startup',
+                    'description',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                    'duration',
+                    'budget_currency',
+                    'budget_amount'
+                    ]
+    search_fields = ['name', 'description']
+
+admin.site.register(Project, ProjectAdmin)
+
+class ProjectFilesAdmin(admin.ModelAdmin):
+    list_display = ['id', 'project', 'file_description', 'file']
+    search_fields = ['id', 'project', 'file_description', 'file']
+
+admin.site.register(ProjectFiles, ProjectFilesAdmin)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project
+from .models import Project, ProjectFiles
 from django.core.exceptions import ValidationError
 
 
@@ -29,7 +29,7 @@ class ProjectSerializer(serializers.ModelSerializer):
                   'status',
                   'startup',
                   'description',
-                  'documentation',
+                #   'documentation',
                   'status',
                   'created_at',
                   'updated_at',
@@ -62,4 +62,15 @@ class ProjectSerializer(serializers.ModelSerializer):
         startup_id = self.initial_data.get('startup')
         if Project.objects.filter(startup_id=startup_id, name=value).exists():
             raise serializers.ValidationError("Project name must be unique for this Startup.")
+        return value
+    
+class ProjectFilesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectFiles
+        fields = ['id', 'project', 'file_description', 'file']
+        read_only_fields = ['id', 'project']
+
+    def validate_file_description(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("File description cannot be empty.")
         return value

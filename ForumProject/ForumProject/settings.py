@@ -138,6 +138,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# MEDIA_URL = '/media/'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
@@ -190,10 +193,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day',
+        'anon': '1000/day',
+        'user': '10000/day',
         'token_obtain': '500/hour',
-        'token_refresh': '10/hour',
+        'token_refresh': '1000/hour',
     }
 }
 

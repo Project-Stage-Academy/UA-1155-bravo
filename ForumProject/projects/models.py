@@ -22,44 +22,10 @@ class Project(models.Model):
         budget_currency (str): currency of the Project's budget
         budget_amount (int): amount of the Project's budget
     """
-    
-    def _generate_upload_path(self, filename):
-        '''
-        The function creates a valid path for each Project's documentation upload
-        and ensures renaming of the file being uploaded if its name is not unique in 
-        the selected folder.
-        '''
-        # Replace special characters with underscores and truncate to 20 characters
-        startup_slug = slugify(self.startup.startup_name)[:20]
-        project_slug = slugify(self.name)[:20]
-
-        # Determine the folder path
-        folder_path = f"media/{startup_slug}/{project_slug}/"
-
-        # Ensure the folder exists
-        os.makedirs(folder_path, exist_ok=True)
-
-        # Replace spaces in the filename with underscores
-        filename = filename.replace(" ", "_")
-        
-        # Create a unique file path
-        full_path = os.path.join(folder_path, filename)
-
-        # Check for existing files with the same name and create a unique name
-        if os.path.exists(full_path):
-            base, extension = os.path.splitext(filename)
-            counter = 1
-            while os.path.exists(full_path):
-                new_filename = f"{base}({counter}){extension}"
-                full_path = os.path.join(folder_path, new_filename)
-                counter += 1
-
-        return full_path
-    
     name = models.CharField(max_length=150)
     startup = models.ForeignKey(Startup, on_delete=models.CASCADE, related_name='projects')
     description = models.CharField(max_length=500)
-    documentation = models.FileField(upload_to=_generate_upload_path, blank=True, null=True)
+    # documentation = models.FileField(upload_to=_generate_upload_path, blank=True, null=True)
     PROJECT_STATUS_CHOICES = [
         ('open', 'Open'),
         ('closed', 'Closed'),
@@ -85,8 +51,50 @@ class Project(models.Model):
         Returns:
             str: The name of the project.
         """
-        return self.project_name
+        return self.name
 
+class ProjectFiles(models.Model):
+
+    def _generate_upload_path(self, filename):
+        '''
+        The function creates a valid path for each Project's documentation upload
+        and ensures renaming of the file being uploaded if its name is not unique in 
+        the selected folder.
+        '''
+        # Replace special characters with underscores and truncate to 20 characters
+        startup_slug = slugify(self.project.startup.startup_name)[:20]
+        project_slug = slugify(self.project.name)[:20]
+
+        # Determine the folder path
+        folder_path = os.path.join('media', f'projects/{startup_slug}/{project_slug}/')
+
+        # Ensure the folder exists
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Replace spaces in the filename with underscores
+        filename = filename.replace(" ", "_")
+        
+        # Create a unique file path
+        full_path = os.path.join(folder_path, filename)
+
+        # Check for existing files with the same name and create a unique name
+        if os.path.exists(full_path):
+            base, extension = os.path.splitext(filename)
+            counter = 1
+            while os.path.exists(full_path):
+                new_filename = f"{base}_{counter}{extension}"
+                full_path = os.path.join(folder_path, new_filename)
+                counter += 1
+
+        return full_path
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_files')
+    file_description = models.CharField(max_length=255, blank=False, verbose_name='file description')
+    file = models.FileField(upload_to=_generate_upload_path, blank=True, null=True)
+
+    def clean(self):
+        if not self.file_description.strip():
+            raise ValidationError("File description cannot be empty.")
 
 class InvestorProject(models.Model):
     """
