@@ -9,9 +9,10 @@ router.register('', views.ProjectViewSet)
 
 urlpatterns = [
     path('', include(router.urls)), 
-    path('files/<int:project>/', views.ProjectFilesViewSet.as_view({
+    path('files-of-project/<int:project>/', views.ProjectFilesViewSet.as_view({
         'get': 'list',
         'post': 'create',
         'delete': 'destroy',
-    }), name='project_files_by_project')
+    }), name='project_files_by_project'),
+    path('delete-file/<int:projectfiles_id>/of-project/<int:project>/', views.delete_project_file, name='delete_project_file')
 ]

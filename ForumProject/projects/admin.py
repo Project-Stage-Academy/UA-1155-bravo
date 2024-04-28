@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import Project, ProjectFiles
 
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ['name',
+    list_display = ['id',
+                    'name',
                     'startup',
                     'description',
                     'status',

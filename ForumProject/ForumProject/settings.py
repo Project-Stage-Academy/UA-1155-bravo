@@ -193,10 +193,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/day',
-        'user': '10000/day',
-        'token_obtain': '500/hour',
-        'token_refresh': '1000/hour',
+        'anon': '100/day',
+        'user': '1000/day',
+        'token_obtain': '5/hour',
+        'token_refresh': '100/hour',
     }
 }
 
