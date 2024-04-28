@@ -35,9 +35,10 @@ class ProjectSerializer(serializers.ModelSerializer):
                   'duration',
                   'budget_currency',
                   'budget_amount',
-                  'project_share'
+                  'project_share',
+                  'project_log'
                  ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'project_share']  
+        read_only_fields = ['id', 'created_at', 'updated_at', 'project_share', 'project_log']
             
         
     

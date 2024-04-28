@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Project, ProjectFiles, InvestorProject
+from .models import Project, ProjectFiles, InvestorProject, ProjectLog
 
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ['id',
@@ -28,3 +28,18 @@ class InvestorProjectAdmin(admin.ModelAdmin):
     search_fields = ['id', 'investor', 'project']
 
 admin.site.register(InvestorProject, InvestorProjectAdmin)
+
+class ProjectLogAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'project',
+        'change_date',
+        'change_time',
+        'user_id',
+        'action',
+        'previous_state',
+        'modified_state'
+    ]
+    search_fields = ['project', 'change_date', 'user_id', 'action']
+
+admin.site.register(ProjectLog)

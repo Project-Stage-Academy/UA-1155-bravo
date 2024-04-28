@@ -39,6 +39,9 @@ class Project(models.Model):
     budget_amount = models.IntegerField(blank=True, null=True)
 
     class Meta:
+        verbose_name = 'Project'
+        verbose_name_plural = 'Projects'
+        ordering = ['startup', 'name']
         constraints = [
             models.UniqueConstraint(fields=['startup', 'name'],
             name='unique_project_per_startup')
@@ -92,6 +95,11 @@ class ProjectFiles(models.Model):
     file_description = models.CharField(max_length=255, blank=False, verbose_name='file description')
     file = models.FileField(upload_to=_generate_upload_path, blank=True, null=True)
 
+    class Meta:
+        verbose_name = 'Project File'
+        verbose_name_plural = 'Project Files'
+        ordering = ['project']
+    
     def clean(self):
         if not self.file_description.strip():
             raise ValidationError("File description cannot be empty.")
@@ -106,6 +114,9 @@ class InvestorProject(models.Model):
     share = models.IntegerField()
 
     class Meta:
+        verbose_name = 'Project Shortlist'
+        verbose_name_plural = 'Project Shortlists'
+        ordering = ['project', '-share']
         constraints = [
             models.CheckConstraint(
                 check=models.Q(share__gte=0) & models.Q(share__lte=100),
@@ -124,3 +135,20 @@ class InvestorProject(models.Model):
         """
         if self.share < 0 or self.share > 100:
             raise ValidationError("Share percentage must be between 0 and 100.")
+        
+class ProjectLog(models.Model):
+    """
+    ADD DOCUMENTATION HERE
+    """
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_log')
+    change_date = models.DateField(auto_now_add=True)
+    change_time = models.TimeField(auto_now_add=True)
+    user_id = models.IntegerField()
+    action = models.CharField(max_length=50)
+    previous_state = models.CharField(max_length=255)
+    modified_state = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name = 'Project Log'
+        verbose_name_plural = 'Project Logs'
+        ordering = ['-change_date', 'project', 'user_id', 'action']

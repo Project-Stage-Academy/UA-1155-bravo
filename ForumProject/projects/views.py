@@ -4,9 +4,12 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.decorators import api_view
 import os
-from .models import Project, ProjectFiles, InvestorProject
+from .models import Project, ProjectFiles, InvestorProject, ProjectLog
 from investors.models import Investor
 from .serializers import ProjectSerializer, ProjectFilesSerializer, InvestorProjectSerializer
+
+def add_log():
+    pass
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
