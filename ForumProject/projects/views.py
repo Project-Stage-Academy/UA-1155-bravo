@@ -4,8 +4,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.decorators import api_view
 import os
-from .models import Project, ProjectFiles
-from .serializers import ProjectSerializer, ProjectFilesSerializer
+from .models import Project, ProjectFiles, InvestorProject
+from investors.models import Investor
+from .serializers import ProjectSerializer, ProjectFilesSerializer, InvestorProjectSerializer
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
@@ -128,3 +129,95 @@ def delete_project_file(request, project, projectfiles_id):
     
     # Return success response
     return Response({"message": "File deleted successfully"}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def shortlist_project(request, project_id, investor_id):
+    """
+    Shortlist a project for an investor with a share of zero.
+    """
+    
+    # Check if an InvestorProject with the given project_id and investor_id already exists
+    if InvestorProject.objects.filter(project_id=project_id, investor_id=investor_id).exists():
+        return Response({"error": "Project is already shortlisted for this investor"},
+                        status=status.HTTP_400_BAD_REQUEST)
+    
+    # Create a new InvestorProject with share=0
+    investor_project = InvestorProject(
+        project_id=project_id,
+        investor_id=investor_id,
+        share=0
+    )
+    investor_project.save()
+
+    return Response({"message": "Project shortlisted with zero share"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+def subscribe_for_project(request, project_id, investor_id, share):
+    """
+    Subscribe an investor to a project with a given share.
+    If a record already exists, update the share value.
+    """
+    if share <= 0 or share > 100:
+        return Response({"error": "Share must be greater than zero and less than or equal to 100"}, status=status.HTTP_400_BAD_REQUEST)
+
+    investor_project, created = InvestorProject.objects.get_or_create(
+        project_id=project_id,
+        investor_id=investor_id,
+        defaults={'share': share}
+    )
+
+    if not created:
+        # If already exists, update the share
+        investor_project.share = share
+        investor_project.save()
+
+    return Response({"message": f"Project subscribed with share {share}"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+def delist_project(request, project_id, investor_id):
+    """
+    Delist a project for a specific investor.
+    """
+    investor_project = get_object_or_404(InvestorProject, project_id=project_id, investor_id=investor_id)
+    investor_project.delete()
+
+    return Response({"message": "Project delisted for the investor"}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def shortlisted_projects_of_startup(request, startup_id):
+    """
+    Get all projects from InvestorProject related to a given startup.
+    """
+    
+    # Check if an Startup with the given startup_id exists
+    if not Project.objects.filter(startup=startup_id).exists():
+        return Response({"error": "Either no such Startup or no Project of such Startup exists"},
+                        status=status.HTTP_400_BAD_REQUEST)
+    
+    # Get all projects with startup_id
+    projects = Project.objects.filter(startup_id=startup_id)
+    investor_projects = InvestorProject.objects.filter(project__in=projects)
+
+    # Serialize the data and return the list
+    serializer = InvestorProjectSerializer(investor_projects, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+def shortlisted_projects_of_investor(request, investor_id):
+    """
+    Get all projects from InvestorProject related to a given investor.
+    """
+    if not Investor.objects.filter(id=investor_id).exists():
+        return Response({"error": "Such Investor does not exist"},
+                        status=status.HTTP_400_BAD_REQUEST)
+        
+    investor_projects = InvestorProject.objects.filter(investor_id=investor_id)
+
+    # Serialize the data and return the list
+    serializer = InvestorProjectSerializer(investor_projects, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

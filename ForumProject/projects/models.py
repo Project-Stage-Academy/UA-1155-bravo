@@ -101,8 +101,8 @@ class InvestorProject(models.Model):
     Model represents the relationship between an Investor and a Project,
     including the percentage share the Investor holds in the Project.
     """
-    investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    investor = models.ForeignKey(Investor, on_delete=models.CASCADE, related_name='shortlisted_project')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_share')
     share = models.IntegerField()
 
     class Meta:
@@ -112,6 +112,9 @@ class InvestorProject(models.Model):
                 name='percentage_share_range'
             )
         ]
+
+    def __str__(self):
+        return f'{self.investor} shortlisted Project {self.project}, subscription: {self.share}%'
 
     def clean(self):
         """

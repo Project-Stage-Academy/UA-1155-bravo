@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, ProjectFiles
+from .models import Project, ProjectFiles, InvestorProject
 from django.core.exceptions import ValidationError
 
 
@@ -29,15 +29,15 @@ class ProjectSerializer(serializers.ModelSerializer):
                   'status',
                   'startup',
                   'description',
-                #   'documentation',
                   'status',
                   'created_at',
                   'updated_at',
                   'duration',
                   'budget_currency',
-                  'budget_amount'
+                  'budget_amount',
+                  'project_share'
                  ]
-        read_only_fields = ['id', 'created_at', 'updated_at']  
+        read_only_fields = ['id', 'created_at', 'updated_at', 'project_share']  
             
         
     
@@ -74,3 +74,9 @@ class ProjectFilesSerializer(serializers.ModelSerializer):
         if not value.strip():
             raise serializers.ValidationError("File description cannot be empty.")
         return value
+    
+class InvestorProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvestorProject
+        fields = ['id', 'investor', 'project', 'share']
+        read_only_fields = ['id', 'investor', 'project', 'share']
