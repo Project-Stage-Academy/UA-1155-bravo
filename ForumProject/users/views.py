@@ -190,9 +190,10 @@ class PasswordRecoveryView(APIView):
                 Util.send_email(get_current_site(request).domain, 'users:password-reset', user, token, message_data)
                 return Response({'success': 'Email was sent successfully'}, status=status.HTTP_200_OK)
             except CustomUser.DoesNotExist:
-                return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                #return 200 instead of HTTP_400_BAD_REQUEST
+                return Response({'error': 'User does not exist'}, status=status.HTTP_200_OK)
+        # return 200 instead of HTTP_400_BAD_REQUEST
+        return Response(serializer.errors, status=status.HTTP_200_OK)
 
 
 class PasswordResetView(APIView):
@@ -245,7 +246,8 @@ class PasswordResetView(APIView):
                     return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
             except jwt.ExpiredSignatureError as identifier:
                 return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
-            except jwt.exceptions.DecodeError as identifier:
+            #added CustomUser.DoesNotExist as a sign of invalid token
+            except (jwt.exceptions.DecodeError, CustomUser.DoesNotExist):
                 return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
