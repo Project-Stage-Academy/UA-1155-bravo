@@ -1,8 +1,10 @@
 from django.urls import path, include
 from .views import InvestorViewSet
+from . import views
 from rest_framework import routers
 
 app_name = 'investors'
+
 
 
 
@@ -13,3 +15,4 @@ urlpatterns = [
     
    
 ]
+

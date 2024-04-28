@@ -3,6 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
+from users.permissions import StartupPermission
 from .models import Startup
 from .serializers import StartupSerializer
 from rest_framework.views import APIView
@@ -23,7 +24,8 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
-    
+    permission_classes = [StartupPermission,]
+
     
     def create(self, request, *args, **kwargs):
         """
@@ -75,7 +77,4 @@ class StartupViewSet(viewsets.ModelViewSet):
         # If the startup has all projects closed, then deletion is possible
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
 

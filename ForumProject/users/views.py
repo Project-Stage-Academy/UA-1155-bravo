@@ -9,7 +9,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObtainPairView,
                                             TokenRefreshView as BaseTokenRefreshView)
 from django.http import JsonResponse
-from datetime import timedelta
 
 from .models import CustomUser
 from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
@@ -32,7 +31,8 @@ class TokenObtainPairView(BaseTokenObtainPairView):
                 max_age=300,  # Token lifetime (5 minutes)
                 httponly=True,  # To prevent JavaScript access
                 secure=True,  # If using HTTPS
-                samesite='Strict',  #  helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
+                samesite='Strict',
+                # helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
             )
 
         return response
@@ -40,7 +40,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
 
 class TokenRefreshView(BaseTokenRefreshView):
     throttle_scope = 'token_refresh'
-    
+
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
@@ -191,9 +191,10 @@ class PasswordRecoveryView(APIView):
                 Util.send_email(get_current_site(request).domain, 'users:password-reset', user, token, message_data)
                 return Response({'success': 'Email was sent successfully'}, status=status.HTTP_200_OK)
             except CustomUser.DoesNotExist:
-                return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                #return 200 instead of HTTP_400_BAD_REQUEST
+                return Response({'error': 'User does not exist'}, status=status.HTTP_200_OK)
+        # return 200 instead of HTTP_400_BAD_REQUEST
+        return Response(serializer.errors, status=status.HTTP_200_OK)
 
 
 class PasswordResetView(APIView):
@@ -246,17 +247,15 @@ class PasswordResetView(APIView):
                     return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
             except jwt.ExpiredSignatureError as identifier:
                 return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
-            except jwt.exceptions.DecodeError as identifier:
+            #added CustomUser.DoesNotExist as a sign of invalid token
+            except (jwt.exceptions.DecodeError, CustomUser.DoesNotExist):
                 return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-    
 
 # boilerplate (for a future "logout" endpoint) to delete the JWT token from cookies
 def logout(request):
     response = JsonResponse({"message": "Logged out"})
     response.delete_cookie('jwt_token')  # Delete the JWT cookie
     return response
-

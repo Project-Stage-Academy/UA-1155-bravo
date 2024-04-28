@@ -1,10 +1,10 @@
-from django.shortcuts import render
-
 from rest_framework.response import Response
 from rest_framework import viewsets, status
 from users.models import UserInvestor
 from .serializers import InvestorSerializer
 from .models import Investor
+from users.permissions import InvestorPermission
+
 
 class InvestorViewSet(viewsets.ModelViewSet):
     """
@@ -20,6 +20,7 @@ class InvestorViewSet(viewsets.ModelViewSet):
     """
     queryset = Investor.objects.all()
     serializer_class = InvestorSerializer
+    permission_classes = [InvestorPermission, ]
     
     
     def create(self, request, *args, **kwargs):
@@ -43,4 +44,5 @@ class InvestorViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
