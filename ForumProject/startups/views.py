@@ -7,6 +7,7 @@ from .models import Startup
 from .serializers import StartupSerializer
 from rest_framework.views import APIView
 from users.models import UserStartup
+from rest_framework.decorators import action
 
 
 
@@ -22,6 +23,30 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
+    
+    
+    def create(self, request, *args, **kwargs):
+        """
+         Handle create requests to create a startup for a user.
+
+         Args:
+             request (Request): The HTTP request object.
+             *args: Additional positional arguments.
+             **kwargs: Additional keyword arguments.
+
+         Returns:
+             Response: Response object with serialized data and appropriate status code.
+
+        """
+        serializer = StartupSerializer(data=request.data)
+        if serializer.is_valid():  
+            startup = serializer.save()
+            user = request.user
+            UserStartup.objects.create(customuser=user, startup=startup, startup_role_id=1) 
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
     def destroy(self, request, *args, **kwargs):
@@ -51,16 +76,6 @@ class StartupViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-class PostForUserStartup(APIView): 
-    
-    
-    def post(self, request, *args, **kwargs):
-        serializer = StartupSerializer(data=request.data)
-        if serializer.is_valid():  
-            startup_id = serializer.save()   
-            user = request.user
-            UserStartup.objects.create(customuser=user, startup=startup_id, startup_role_id=1) 
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+

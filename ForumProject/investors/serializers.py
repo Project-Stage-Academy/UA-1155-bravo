@@ -36,21 +36,21 @@ class InvestorSerializer(serializers.ModelSerializer):
         
     def validate_investor_name(self, value):
         """
-        Validate the startup name for non-empty and uniqueness.
+        Validate the investor name for non-empty and uniqueness.
 
         Parameters:
-            value (str): The startup name to validate.
+            value (str): The investor name to validate.
 
         Returns:
-            str: The validated startup name.
+            str: The validated investor name.
 
         Raises:
-            serializers.ValidationError: If the startup name is empty or not unique.
+            serializers.ValidationError: If the investor name is empty or not unique.
         """
         value = value.strip()
         value = value[0].upper() + value[1:]
         if not value:
-            raise serializers.ValidationError("Startup name cannot be empty.")
+            raise serializers.ValidationError("Investor name cannot be empty.")
         if Investor.objects.filter(investor_name=value).exists():
-            raise serializers.ValidationError("Startup name must be unique.")
+            raise serializers.ValidationError("Investor name must be unique.")
         return value
