@@ -26,7 +26,7 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
-    permission_classes = [StartupPermission,]
+    # permission_classes = [StartupPermission,]
 
     
     def create(self, request, *args, **kwargs):
