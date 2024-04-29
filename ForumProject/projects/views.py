@@ -4,12 +4,13 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.decorators import api_view
 import os
+from datetime import datetime
 from .models import Project, ProjectFiles, InvestorProject, ProjectLog
 from investors.models import Investor
-from .serializers import ProjectSerializer, ProjectFilesSerializer, InvestorProjectSerializer
+from .serializers import ProjectSerializer, ProjectFilesSerializer, InvestorProjectSerializer, ProjectLogSerializer
 
-def add_log():
-    pass
+# def add_log(project, user_id, action, previous_state, modified_state):
+#     pass
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
@@ -27,10 +28,32 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Get the project instance to be deleted
         project_instance = self.get_object()
 
+        # Log the project deletion
+        max_length_previous = ProjectLog._meta.get_field('previous_state').max_length
+        ProjectLog.objects.create(
+            project=project_instance,
+            change_date=datetime.now().date(),
+            change_time=datetime.now().time(),
+            user_id=1,  # This is a placeholder
+            action='Deleted Project',
+            previous_state=f'Project ID: {project_instance.pk}, Name: {project_instance.name}'[:max_length_previous],
+            modified_state='n/a'
+        )
+
         # Find and delete all ProjectFiles related to this project
         project_files = ProjectFiles.objects.filter(project=project_instance)
         
         for project_file in project_files:
+            # Log each project file deletion
+            ProjectLog.objects.create(
+                project=project_instance,
+                change_date=datetime.now().date(),
+                change_time=datetime.now().time(),
+                user_id=1, # This is a placeholder
+                action='Deleted File of Project',
+                previous_state=f'File ID: {project_file.pk}, Description: {project_file.file_description}'[:max_length_previous],
+                modified_state='n/a',
+            )
             # Delete the actual files from the server
             if project_file.file:
                 project_file.file.delete()  # Delete from file system
@@ -224,3 +247,12 @@ def shortlisted_projects_of_investor(request, investor_id):
     # Serialize the data and return the list
     serializer = InvestorProjectSerializer(investor_projects, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ProjectLogViewSet(viewsets.ModelViewSet):
+    """
+    ADD DOCUMENTATION
+    """
+    
+    queryset = ProjectLog.objects.all()
+    serializer_class = ProjectLogSerializer
+    http_method_names = ['get']

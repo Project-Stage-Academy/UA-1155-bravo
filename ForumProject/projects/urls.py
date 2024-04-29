@@ -26,4 +26,7 @@ urlpatterns = [
         views.shortlisted_projects_of_startup, name='shortlisted_projects_of_startup'),
     path('shortlisted-projects-of-investor/<int:investor_id>/',
         views.shortlisted_projects_of_investor, name='shortlisted_projects_of_investor'),
+    path('logs/<int:project>/', views.ProjectFilesViewSet.as_view({
+        'get': 'list',
+    }), name='project_logs')
 ]

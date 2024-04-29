@@ -33,6 +33,7 @@ class ProjectLogAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'project',
+        'project_title',
         'change_date',
         'change_time',
         'user_id',
@@ -42,4 +43,4 @@ class ProjectLogAdmin(admin.ModelAdmin):
     ]
     search_fields = ['project', 'change_date', 'user_id', 'action']
 
-admin.site.register(ProjectLog)
+admin.site.register(ProjectLog, ProjectLogAdmin)

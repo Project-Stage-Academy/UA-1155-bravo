@@ -4,6 +4,7 @@ from startups.models import Startup
 from investors.models import Investor
 import os
 from django.utils.text import slugify
+from datetime import datetime
 
 
 class Project(models.Model):
@@ -46,6 +47,55 @@ class Project(models.Model):
             models.UniqueConstraint(fields=['startup', 'name'],
             name='unique_project_per_startup')
         ]
+    
+    def save(self, *args, **kwargs):
+        """
+        Overriding save method to ensure a log is recorded when a Project is created or modified
+        """
+
+        # Determine if this is a new object or an existing one
+        is_new = self.pk is None
+
+
+        if not is_new:
+            action = 'Update of Project'
+            # Fetch the original instance from the database to compare with the current one
+            original = Project.objects.get(pk=self.pk)
+
+            # Compare attributes to identify changes
+            changes = []
+            for field in self._meta.fields:
+                field_name = field.name
+                if getattr(original, field_name) != getattr(self, field_name):
+                    changes.append(
+                        (field_name, getattr(original, field_name), getattr(self, field_name))
+                    )
+
+            if changes:
+                # Prepare the previous and modified states
+                previous_state = ', '.join([f'{field}: {old_value}' for field, old_value, _ in changes])
+                modified_state = ', '.join([f'{field}: {new_value}' for field, _, new_value in changes])
+        else:
+            action = 'Created Project'
+            previous_state = 'n/a'
+            modified_state = f'New Project, id: {self.pk}, name: {self.name}'
+
+        super().save(*args, **kwargs)
+        
+        # Create a new ProjectLog
+        current_date = datetime.now().date()
+        current_time = datetime.now().time()
+
+        ProjectLog.objects.create(
+            project=self,
+            project_title=self.name,
+            change_date=current_date,
+            change_time=current_time,
+            user_id=1,  # This is a placeholder
+            action=action,
+            previous_state=previous_state[:ProjectLog._meta.get_field('previous_state').max_length],
+            modified_state=modified_state[:ProjectLog._meta.get_field('modified_state').max_length]
+            )
     
     def __str__(self):
         """
@@ -140,15 +190,16 @@ class ProjectLog(models.Model):
     """
     ADD DOCUMENTATION HERE
     """
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_log')
+    project = models.ForeignKey(Project, null=True, on_delete=models.SET_NULL, related_name='project_log', verbose_name="Project in DB")
+    project_title = models.CharField(max_length=Project._meta.get_field('name').max_length, verbose_name='Project title')
     change_date = models.DateField(auto_now_add=True)
     change_time = models.TimeField(auto_now_add=True)
     user_id = models.IntegerField()
     action = models.CharField(max_length=50)
-    previous_state = models.CharField(max_length=255)
-    modified_state = models.CharField(max_length=255)
+    previous_state = models.CharField(max_length=255, verbose_name='Before changes')
+    modified_state = models.CharField(max_length=255, verbose_name='After changes')
 
     class Meta:
         verbose_name = 'Project Log'
         verbose_name_plural = 'Project Logs'
-        ordering = ['-change_date', 'project', 'user_id', 'action']
+        ordering = ['-pk']
