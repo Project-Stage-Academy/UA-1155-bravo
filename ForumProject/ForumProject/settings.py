@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
 
 ]
 
@@ -197,7 +198,11 @@ REST_FRAMEWORK = {
         'user': '1000/day',
         'token_obtain': '5/hour',
         'token_refresh': '100/hour',
-    }
+    },
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ),
+
 }
 
 

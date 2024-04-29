@@ -32,6 +32,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         max_length_previous = ProjectLog._meta.get_field('previous_state').max_length
         ProjectLog.objects.create(
             project=project_instance,
+            project_title=project_instance.name,
             change_date=datetime.now().date(),
             change_time=datetime.now().time(),
             user_id=1,  # This is a placeholder
@@ -47,6 +48,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             # Log each project file deletion
             ProjectLog.objects.create(
                 project=project_instance,
+                project_title=project_instance.name,
                 change_date=datetime.now().date(),
                 change_time=datetime.now().time(),
                 user_id=1, # This is a placeholder

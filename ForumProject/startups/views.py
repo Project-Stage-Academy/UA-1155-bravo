@@ -1,11 +1,15 @@
 from django.shortcuts import render
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
+from users.permissions import StartupPermission
 from .models import Startup
 from .serializers import StartupSerializer
-
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import StartupFilter
+from rest_framework import filters
+from rest_framework.pagination import PageNumberPagination
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -18,7 +22,7 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
-
+    permission_classes = [StartupPermission,]
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -46,4 +50,61 @@ class StartupViewSet(viewsets.ModelViewSet):
         # If the startup has all projects closed, then deletion is possible
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class StandardResultsSetPagination(PageNumberPagination):
+    """
+    A standard pagination class for paginating results.
+
+    Inherits:
+        PageNumberPagination: Base class for pagination.
+
+    Attributes:
+        page_size (int): The default page size for pagination.
+        page_size_query_param (str): The query parameter to specify the page size.
+        max_page_size (int): The maximum allowed page size for pagination.
+
+    """    
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    
+
+class StartupList(generics.ListAPIView):
+    """
+    A view to list all startups with filters.
+
+    Inherits:
+        generics.ListAPIView
+
+    Attributes:
+        queryset (QuerySet): All startups in the database.
+        serializer_class (Serializer): Serializer class for startups.
+        filter_backends (list): List of filter backends for the view.
+        filterset_class (FilterSet): FilterSet class for startup filtering.
+    """   
+    queryset = Startup.objects.all()
+    serializer_class = StartupSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = StartupFilter
+    pagination_class = StandardResultsSetPagination
+    
+    
+class StartupListDetailfilter(generics.ListAPIView):
+    """
+    A view to search startups.
+
+    Inherits:
+        generics.ListAPIView
+
+    Attributes:
+        queryset (QuerySet): All startups in the database.
+        serializer_class (Serializer): Serializer class for startups.
+        filter_backends (list): List of filter backends for the view.
+        search_fields (list): List of fields to search against.
+    """
+    queryset = Startup.objects.all()
+    serializer_class = StartupSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['^startup_name', '^startup_industry', '=startup_country']
 
