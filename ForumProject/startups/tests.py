@@ -7,6 +7,7 @@ from startups.models import Startup
 from users.models import CustomUser
 import random, string
 from django.db import transaction
+from rest_framework.test import APITestCase
 
 class StartupCreationTestCase(TestCase):
     
@@ -53,7 +54,7 @@ class StartupCreationTestCase(TestCase):
         '''
         Helper method to create a Startup with given data.
         '''
-        return self.client.post(reverse('startups:startup-list'), data, format='json')
+        return self.client.post(reverse('startups:startup-add'), data, format='json')
     
     
     def assert_failure(self, data, expected_objects=0):
@@ -164,3 +165,86 @@ class StartupCreationTestCase(TestCase):
             self.startup_data[key] = ''
             self.assert_failure(self.startup_data)
             self.startup_data[key] = original_value
+
+
+class StartupViewSetTestCase(APITestCase):
+    
+    @classmethod
+    def setUpTestData(cls):
+        '''
+        Setting up test data that does not change across tests.
+        '''
+        # Create a CustomUser for authentication
+        cls.user = CustomUser.objects.create_user(
+            email='dummy@user.com',
+            first_name='John',
+            last_name='Doe',
+            phone_number='+3801234567',
+            password='password',
+            is_active=True
+        )
+        
+        # Get JWT token for the user
+        refresh = RefreshToken.for_user(cls.user)
+        cls.token = str(refresh.access_token)   
+
+    def setUp(self):
+        '''
+        Setup that is executed before each test case.
+        '''
+        # Set up the test client and authenticate with the token
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+
+        # Sample data for testing
+        self.startup = Startup.objects.create(startup_name='Django Dribblers', startup_industry='IT', startup_phone='+3801234567', startup_country='UA', startup_city='Lviv', startup_address='I Franka 123')
+
+    @transaction.atomic
+    def test_retrieve_startup_list(self):
+        # Checking availability of the startup list
+        response = self.client.get(reverse('startups:startup-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    @transaction.atomic
+    def test_retrieve_single_startup(self):
+        # Checking availability of a single startup
+        response = self.client.get(reverse('startups:startup-detail', args=[self.startup.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    # @transaction.atomic
+    # def test_edit_startup_name(self):
+    #     # Зміна назви стартапу
+    #     new_name = 'ABCD'
+    #     data = {'startup_name': new_name}
+    #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.startup.refresh_from_db()
+    #     self.assertEqual(self.startup.startup_name, new_name)
+    
+    @transaction.atomic
+    def test_edit_invalid_phone_number(self):
+        # Зміна телефонного номера на недійсний
+        new_phone = '+1234'  # Невалідний номер
+        data = {'startup_phone': new_phone}
+        response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Переконайтеся, що номер телефону не змінився
+        self.startup.refresh_from_db()
+        self.assertNotEqual(self.startup.startup_phone, new_phone)
+    
+    # @transaction.atomic
+    # def test_edit_startup_industry(self):
+    #     # Зміна індустрії стартапу
+    #     new_industry = 'ABCD'
+    #     data = {'startup_industry': new_industry}
+    #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.startup.refresh_from_db()
+    #     self.assertEqual(self.startup.startup_industry, new_industry)
+    
+    @transaction.atomic
+    def test_delete_startup(self):
+        # Checking startup deletion
+        response = self.client.delete(reverse('startups:startup-detail', args=[self.startup.id]))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Startup.objects.filter(id=self.startup.id).exists())
