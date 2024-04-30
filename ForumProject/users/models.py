@@ -119,6 +119,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+class UserRoleCompany(models.Model):
+    class Role(models.TextChoices):
+        STARTUP = 'startup', 'startup'
+        INVESTOR = 'investor', 'investor'
+        UNDEFINED = 'undefined', 'undefined'
+
+    user = models.OneToOneField(CustomUser, related_name='user_info', on_delete=models.CASCADE)
+    role = models.CharField(max_length=9, choices=Role.choices, default=Role.UNDEFINED)
+    company_id = models.IntegerField(default=0)
+
+
 class UserInvestor(models.Model):
     """
     Represents the relationship between a user and an investor.

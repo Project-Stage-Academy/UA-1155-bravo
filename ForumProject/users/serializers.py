@@ -2,10 +2,20 @@ from django.core.validators import EmailValidator
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import CustomUser
+from .models import CustomUser, UserRoleCompany
 from .validators import CustomUserValidator
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRoleCompany
+        fields = ['role']
+
+    def validate_role(self, value):
+        if value not in ['startup', 'investor']:
+            raise serializers.ValidationError("Role should be a startup or an investor")
+        return value
 
 
 class BasePasswordSerializer(serializers.ModelSerializer):

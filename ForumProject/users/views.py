@@ -2,7 +2,7 @@ import jwt
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -10,8 +10,8 @@ from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObta
                                             TokenRefreshView as BaseTokenRefreshView)
 from django.http import JsonResponse
 
-from .models import CustomUser
-from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
+from .models import CustomUser, UserRoleCompany
+from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer, RoleSerializer
 from .utils import Util
 
 
@@ -58,6 +58,23 @@ class TokenRefreshView(BaseTokenRefreshView):
             )
 
         return response
+
+
+class RoleSelectionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = RoleSerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            if UserRoleCompany.objects.filter(user=user).exists():
+                user_role = UserRoleCompany.objects.get(user=user)
+                user_role.role = serializer.validated_data['role']
+                user_role.save()
+            else:
+                UserRoleCompany.objects.create(user=user, role=serializer.validated_data['role'])
+            return Response({'success': 'Role has been successfully updated.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserRegistrationView(APIView):
