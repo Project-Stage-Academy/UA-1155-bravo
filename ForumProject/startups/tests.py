@@ -53,7 +53,7 @@ class StartupCreationTestCase(TestCase):
         '''
         Helper method to create a Startup with given data.
         '''
-        return self.client.post(reverse('startups:startup-list'), data, format='json')
+        return self.client.post(reverse('startups:startup-add'), data, format='json')
     
     
     def assert_failure(self, data, expected_objects=0):

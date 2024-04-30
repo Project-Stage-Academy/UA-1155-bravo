@@ -48,10 +48,19 @@ class StartupSerializer(serializers.ModelSerializer):
         """
         value = value.strip()
         value = value[0].upper() + value[1:]
+        
         if not value:
             raise serializers.ValidationError("Startup name cannot be empty.")
-        if Startup.objects.filter(startup_name=value).exists():
-            raise serializers.ValidationError("Startup name must be unique.")
+        
+        # If this is a POST request, check uniqueness using exists()
+        if not self.instance:
+            if Startup.objects.filter(startup_name=value).exists():
+                raise serializers.ValidationError("Startup name must be unique.")
+        # If this is a PUT request, check uniqueness using exclude() and exists()
+        else:
+            if Startup.objects.filter(startup_name=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError("Startup name must be unique.")
+        
         return value
 
     
