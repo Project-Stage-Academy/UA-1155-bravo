@@ -9,6 +9,7 @@ import random, string
 from django.db import transaction
 from rest_framework.test import APITestCase
 from projects.models import Project
+from django.core.exceptions import ObjectDoesNotExist
 
 class StartupCreationTestCase(TestCase):
     
@@ -228,21 +229,56 @@ class StartupViewSetTestCase(APITestCase):
         self.startup.refresh_from_db()
         self.assertNotEqual(self.startup.startup_phone, new_phone)
     
-    # @transaction.atomic
-    # def test_edit_startup_industry(self):
-    #     data = {'startup_industry': 'ABCD'}
-    #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.startup.refresh_from_db()
-    #     self.assertEqual(self.startup.startup_industry, 'ABCD')
-    
-    # @transaction.atomic
-    # def test_edit_startup_name(self):
-    #     data = {'startup_name': 'Abcdeer'}
-    #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.startup.refresh_from_db()
-    #     self.assertEqual(self.startup.startup_name, 'Abcdeer')
+    def test_edit_startup_industry(self):
+        new_industry = 'ABCD'
+        updated_data = {
+            'startup_name': self.startup.startup_name,  
+            'startup_industry': new_industry,
+            'startup_phone': self.startup.startup_phone,
+            'startup_country': 'UA',
+            'startup_city': self.startup.startup_city,
+            'startup_address': self.startup.startup_address
+        }
+        url = reverse('startups:startup-detail', args=[self.startup.id])
+        
+        response = self.client.put(url, updated_data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        try:
+            self.startup.refresh_from_db()
+        except ObjectDoesNotExist:
+            self.fail("The startup object no longer exists.")
+        except Exception as e:
+            self.fail(f"An error occurred when refreshing the object from the database: {e}")
+
+        self.assertEqual(self.startup.startup_industry, new_industry)
+
+    @transaction.atomic
+    def test_edit_startup_name(self):
+        new_name = 'Abcdeer'
+        updated_data = {
+            'startup_name': new_name,
+            'startup_industry': self.startup.startup_industry,  # Залишаємо інші дані без змін
+            'startup_phone': self.startup.startup_phone,
+            'startup_country': 'UA',
+            'startup_city': self.startup.startup_city,
+            'startup_address': self.startup.startup_address
+        }
+        url = reverse('startups:startup-detail', args=[self.startup.id])
+        
+        response = self.client.put(url, updated_data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        try:
+            self.startup.refresh_from_db()
+        except ObjectDoesNotExist:
+            self.fail("The startup object no longer exists.")
+        except Exception as e:
+            self.fail(f"An error occurred when refreshing the object from the database: {e}")
+
+        self.assertEqual(self.startup.startup_name, new_name)
     
     
     @transaction.atomic
@@ -310,23 +346,30 @@ class StartupAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Startup.objects.count(), 0)
 
-    # @transaction.atomic
-    # def test_update_startup(self):
-    #     startup = Startup.objects.create(**self.startup_data)
-    #     updated_startup_data = {
-    #         'startup_name': 'Updated Startup2',
-    #         'startup_industry': 'Finance',
-    #         'startup_phone': '+987654321031',
-    #         'startup_country': 'UK',
-    #         'startup_city': 'London',
-    #         'startup_address': '456 High St'
-    #     }
-    #     url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
-    #     self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
-    #     response = self.client.put(url, updated_startup_data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     startup.refresh_from_db()
-    #     self.assertEqual(startup.startup_name, 'Updated Startup2')
+
+    def test_update_startup(self):
+        startup = Startup.objects.create(**self.startup_data)
+        updated_startup_data = {
+            'startup_name': 'pdatedStartup2',
+            'startup_industry': 'Finance',
+            'startup_phone': '+380987654321',
+            'startup_country': 'UA',
+            'startup_city': 'London',
+            'startup_address': '456HighSt'
+        }
+        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.put(url, updated_startup_data, format='json')
+        
+        try:
+            startup.refresh_from_db()
+        except ObjectDoesNotExist:
+            self.fail("The startup object no longer exists.")
+        except Exception as e:
+            self.fail(f"An error occurred when refreshing the object from the database: {e}")
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(startup.startup_name, 'PdatedStartup2')
 
 
     @transaction.atomic
