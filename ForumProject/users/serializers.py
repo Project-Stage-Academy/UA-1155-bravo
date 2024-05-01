@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 
-from .models import CustomUser, UserRoleCompany
+from .models import CustomUser, UserRoleCompany, UserStartup
 from .validators import CustomUserValidator
 
 
@@ -16,6 +16,12 @@ class RoleSerializer(serializers.ModelSerializer):
         if value not in ['startup', 'investor']:
             raise serializers.ValidationError("Role should be a startup or an investor")
         return value
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRoleCompany
+        fields = ['company_id']
 
 
 class BasePasswordSerializer(serializers.ModelSerializer):

@@ -1,7 +1,7 @@
 import jwt
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,8 +10,13 @@ from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObta
                                             TokenRefreshView as BaseTokenRefreshView)
 from django.http import JsonResponse
 
-from .models import CustomUser, UserRoleCompany
-from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer, RoleSerializer
+from investors.models import Investor
+from investors.serializers import InvestorSerializer
+from startups.models import Startup
+from startups.serializers import StartupSerializer
+from .models import CustomUser, UserRoleCompany, UserStartup, UserInvestor
+from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer, RoleSerializer, \
+    CompanySerializer
 from .utils import Util
 
 
@@ -75,6 +80,44 @@ class RoleSelectionView(APIView):
                 UserRoleCompany.objects.create(user=user, role=serializer.validated_data['role'])
             return Response({'success': 'Role has been successfully updated.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CompanySelectionView(APIView):
+    permission_classes = [IsAuthenticated]  # write permission only for users with role
+
+    def post(self, request):
+        serializer = CompanySerializer(data=request.data)
+        if serializer.is_valid():
+            user = request.user
+            user_company = UserRoleCompany.objects.get(user=user)
+            user_company.company_id = serializer.validated_data['company_id']
+            user_company.save()
+            return Response({'success': 'Company has been successfully updated.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserCompanyView(generics.ListAPIView):
+    permission_classes = []  # write permission only for users with role
+
+    def get_serializer_class(self):
+        user = UserRoleCompany.objects.get(user=self.request.user)
+        user_role = user.role
+
+        if user_role == 'startup':
+            return StartupSerializer
+        elif user_role == 'investor':
+            return InvestorSerializer
+
+    def get_queryset(self):
+        user = UserRoleCompany.objects.get(user=self.request.user)
+        user_role = user.role
+
+        if user_role == 'startup':
+            user_startups = UserStartup.objects.filter(customuser=self.request.user).values('startup')
+            return Startup.objects.filter(id__in=user_startups)
+        elif user_role == 'investor':
+            user_investors = UserInvestor.objects.filter(customuser=self.request.user).values('investor')
+            return Investor.objects.filter(id__in=user_investors)
 
 
 class UserRegistrationView(APIView):

@@ -14,4 +14,6 @@ urlpatterns = [
     path('password-recovery/', views.PasswordRecoveryView.as_view(), name='password-recovery'),
     path('password-reset/<token>/', views.PasswordResetView.as_view(), name='password-reset'),
     path('role-selection/', views.RoleSelectionView.as_view(), name='role-selection'),
+    path('company-selection/', views.CompanySelectionView.as_view(), name='company-selection'),
+    path('user-companies/', views.UserCompanyView.as_view(), name='user-companies'),
 ]
