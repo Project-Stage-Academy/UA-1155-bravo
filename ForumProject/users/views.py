@@ -75,6 +75,7 @@ class RoleSelectionView(APIView):
             if UserRoleCompany.objects.filter(user=user).exists():
                 user_role = UserRoleCompany.objects.get(user=user)
                 user_role.role = serializer.validated_data['role']
+                user_role.company_id = 0
                 user_role.save()
             else:
                 UserRoleCompany.objects.create(user=user, role=serializer.validated_data['role'])
@@ -89,10 +90,21 @@ class CompanySelectionView(APIView):
         serializer = CompanySerializer(data=request.data)
         if serializer.is_valid():
             user = request.user
-            user_company = UserRoleCompany.objects.get(user=user)
-            user_company.company_id = serializer.validated_data['company_id']
-            user_company.save()
-            return Response({'success': 'Company has been successfully updated.'}, status=status.HTTP_200_OK)
+            user_investors = UserInvestor.objects.filter(customuser=self.request.user).values('investor')
+            user_startups = UserStartup.objects.filter(customuser=self.request.user).values('startup')
+            company = serializer.validated_data['company_id']
+
+            user_role_company = UserRoleCompany.objects.get(user=user)
+            if user_role_company.role == 'investor' and {'investor': company} in user_investors:
+                user_role_company.company_id = company
+                user_role_company.save()
+                return Response({'success': 'The investor company was successfully selected'}, status=status.HTTP_200_OK)
+
+            elif user_role_company.role == 'startup' and {'startup': company} in user_startups:
+                user_role_company.company_id = company
+                user_role_company.save()
+                return Response({'success': 'The startup company was successfully selected'}, status=status.HTTP_200_OK)
+            return Response({'error': 'You must select only your company'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
