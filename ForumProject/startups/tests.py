@@ -8,6 +8,7 @@ from users.models import CustomUser
 import random, string
 from django.db import transaction
 from rest_framework.test import APITestCase
+from projects.models import Project
 
 class StartupCreationTestCase(TestCase):
     
@@ -197,7 +198,12 @@ class StartupViewSetTestCase(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
 
         # Sample data for testing
-        self.startup = Startup.objects.create(startup_name='Django Dribblers', startup_industry='IT', startup_phone='+3801234567', startup_country='UA', startup_city='Lviv', startup_address='I Franka 123')
+        self.startup = Startup.objects.create(startup_name='Django Dribblers',
+                                              startup_industry='IT',
+                                              startup_phone='+3801234567',
+                                              startup_country='UA',
+                                              startup_city='Lviv',
+                                              startup_address='I Franka 123')
 
     @transaction.atomic
     def test_retrieve_startup_list(self):
@@ -211,36 +217,33 @@ class StartupViewSetTestCase(APITestCase):
         response = self.client.get(reverse('startups:startup-detail', args=[self.startup.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
     
-    # @transaction.atomic
-    # def test_edit_startup_name(self):
-    #     # Зміна назви стартапу
-    #     new_name = 'ABCD'
-    #     data = {'startup_name': new_name}
-    #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.startup.refresh_from_db()
-    #     self.assertEqual(self.startup.startup_name, new_name)
     
     @transaction.atomic
     def test_edit_invalid_phone_number(self):
-        # Зміна телефонного номера на недійсний
-        new_phone = '+1234'  # Невалідний номер
+        
+        new_phone = '+1234'  # no valid number
         data = {'startup_phone': new_phone}
         response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Переконайтеся, що номер телефону не змінився
         self.startup.refresh_from_db()
         self.assertNotEqual(self.startup.startup_phone, new_phone)
     
     # @transaction.atomic
     # def test_edit_startup_industry(self):
-    #     # Зміна індустрії стартапу
-    #     new_industry = 'ABCD'
-    #     data = {'startup_industry': new_industry}
+    #     data = {'startup_industry': 'ABCD'}
     #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
     #     self.assertEqual(response.status_code, status.HTTP_200_OK)
     #     self.startup.refresh_from_db()
-    #     self.assertEqual(self.startup.startup_industry, new_industry)
+    #     self.assertEqual(self.startup.startup_industry, 'ABCD')
+    
+    # @transaction.atomic
+    # def test_edit_startup_name(self):
+    #     data = {'startup_name': 'Abcdeer'}
+    #     response = self.client.put(reverse('startups:startup-detail', args=[self.startup.id]), data, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.startup.refresh_from_db()
+    #     self.assertEqual(self.startup.startup_name, 'Abcdeer')
+    
     
     @transaction.atomic
     def test_delete_startup(self):
@@ -248,3 +251,197 @@ class StartupViewSetTestCase(APITestCase):
         response = self.client.delete(reverse('startups:startup-detail', args=[self.startup.id]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Startup.objects.filter(id=self.startup.id).exists())
+ 
+ 
+        
+class StartupAPITest(APITestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        '''
+        Setting up test data that does not change across tests.
+        '''
+        # Create a CustomUser for authentication
+        cls.user = CustomUser.objects.create_user(
+            email='dammy@user.com',
+            first_name='John',
+            last_name='Doe',
+            phone_number='+3801234562',
+            password='password123',
+            is_active=True
+        )
+        
+        # Get JWT token for the user
+        refresh = RefreshToken.for_user(cls.user)
+        cls.token = str(refresh.access_token)
+    
+    def setUp(self):
+        self.startup_data = {
+            'startup_name': 'Test Startup2',
+            'startup_industry': 'IT',
+            'startup_phone': '+1234567890',
+            'startup_country': 'US',
+            'startup_city': 'New York',
+            'startup_address': '123 Main St'
+        }
+        
+    
+
+    @transaction.atomic
+    def test_create_startup(self):
+        url = reverse('startups:startup-add')
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.post(url, self.startup_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Startup.objects.count(), 1)
+        
+    @transaction.atomic        
+    def test_create_startup_missing_fields(self):
+        incomplete_data = {
+            'startup_name': 'Incomplete Startup',
+            'startup_industry': 'IT',
+            'startup_country': 'US',
+            'startup_city': 'New York',
+            'startup_address': '123 Main St'
+        }
+        url = reverse('startups:startup-add')
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.post(url, incomplete_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Startup.objects.count(), 0)
+
+    # @transaction.atomic
+    # def test_update_startup(self):
+    #     startup = Startup.objects.create(**self.startup_data)
+    #     updated_startup_data = {
+    #         'startup_name': 'Updated Startup2',
+    #         'startup_industry': 'Finance',
+    #         'startup_phone': '+987654321031',
+    #         'startup_country': 'UK',
+    #         'startup_city': 'London',
+    #         'startup_address': '456 High St'
+    #     }
+    #     url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
+    #     self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+    #     response = self.client.put(url, updated_startup_data, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     startup.refresh_from_db()
+    #     self.assertEqual(startup.startup_name, 'Updated Startup2')
+
+
+    @transaction.atomic
+    def test_delete_startup(self):
+        # Create a startup
+        startup = Startup.objects.create(**self.startup_data)
+
+        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Startup.objects.count(), 0)
+        
+    @transaction.atomic
+    def test_delete_startup_with_closed_projects(self):
+        startup = Startup.objects.create(**self.startup_data)
+        # Create a closed project associated with the startup
+        Project.objects.create(startup=startup, project_name='Closed Project', project_status='closed')
+        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk}) 
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Startup.objects.count(), 0)
+
+    @transaction.atomic
+    def test_delete_startup_with_open_projects(self):
+        startup = Startup.objects.create(**self.startup_data)
+        # Create an open project associated with the startup
+        Project.objects.create(startup=startup, project_name='Open Project', project_status='open')
+        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Startup.objects.count(), 1)  # Startup should not be deleted
+
+    
+
+
+    
+class StartupAPITestFilters(APITestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        '''
+        Setting up test data that does not change across tests.
+        '''
+        # Create a CustomUser for authentication
+        cls.user = CustomUser.objects.create_user(
+            email='dammy2@user2.com',
+            first_name='John2',
+            last_name='Doe2',
+            phone_number='+3801234562',
+            password='password123',
+            is_active=True
+        )
+        
+        # Get JWT token for the user
+        refresh = RefreshToken.for_user(cls.user)
+        cls.token = str(refresh.access_token)
+    
+    def setUp(self):
+        self.startup_data = {
+            
+            'startup_industry': 'IT',
+            'startup_phone': '+1234567890',
+            'startup_country': 'US',
+            'startup_city': 'New York',
+            'startup_address': '123 Main St'
+        }
+    
+        
+    @transaction.atomic
+    def test_search_startup(self):
+
+        Startup.objects.create(startup_name='zxcvb', startup_industry='Vanish', startup_phone='+1234567890', startup_country='AG', startup_city='New York', startup_address='123 Main St')
+        Startup.objects.create(startup_name='TestStartup1', startup_industry='Vanish', startup_phone='+1234567890', startup_country='AG', startup_city='New York', startup_address='123 Main St')
+        
+
+        url = reverse('startups:startup-search') + '?search=Test'
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['startup_name'], 'TestStartup1')
+        
+        
+    @transaction.atomic
+    def test_filter_startup_by_country(self):
+
+        Startup.objects.create(startup_name='Startup1', startup_industry='Vanish', startup_phone='+1234567890', startup_country='US', startup_city='New York', startup_address='123 Main St')
+        Startup.objects.create(startup_name='Startup2', startup_industry='Vanish', startup_phone='+1234567890', startup_country='US', startup_city='New York', startup_address='123 Main St')
+        Startup.objects.create(startup_name='Startup3', startup_industry='Vanish', startup_phone='+1234567890', startup_country='US', startup_city='New York', startup_address='123 Main St')
+        Startup.objects.create(startup_name='Startup4', startup_industry='Vanish', startup_phone='+1234567890', startup_country='US', startup_city='New York', startup_address='123 Main St')
+        url = reverse('startups:startup-list') + '?startup_name=&startup_industry=&project_status=&startup_country=US'  
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 4)  
+
+    
+    @transaction.atomic
+    def test_startup_pagination(self):
+        for i in range(15):
+            Startup.objects.create(startup_name=f'Test Startup {i}', **self.startup_data)
+        
+
+        url = reverse('startups:startup-list')
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 10)  
+
+
+        url = reverse('startups:startup-list') + '?page_size=5'
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 5)  

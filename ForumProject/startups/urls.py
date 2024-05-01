@@ -1,5 +1,5 @@
 from django.urls import path, include
-from . import views
+from .views import StartupViewSet
 from rest_framework import routers
 from .views import StartupViewSet, StartupList, StartupListDetailfilter, PersonalStartupList
 from rest_framework.routers import DefaultRouter
@@ -19,5 +19,10 @@ urlpatterns = [
     path('search/', StartupListDetailfilter.as_view(), name='startup-search'),
     
 ]
+
+
+    
+    
+
 
 

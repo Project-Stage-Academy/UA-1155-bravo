@@ -8,10 +8,14 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Startup
 from users.models import UserStartup
 from .serializers import StartupSerializer
+from rest_framework.views import APIView
+from users.models import UserStartup
+from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import StartupFilter
 from rest_framework import filters
 from rest_framework.pagination import PageNumberPagination
+
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -25,7 +29,7 @@ class StartupViewSet(viewsets.ModelViewSet):
     queryset = Startup.objects.all().order_by('id')
     serializer_class = StartupSerializer
     # permission_classes = [StartupPermission,]
-    
+
 
     
     def create(self, request, *args, **kwargs):
@@ -50,7 +54,7 @@ class StartupViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+
 
 
     def destroy(self, request, *args, **kwargs):
@@ -79,6 +83,7 @@ class StartupViewSet(viewsets.ModelViewSet):
         # If the startup has all projects closed, then deletion is possible
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -141,6 +146,7 @@ class StartupListDetailfilter(generics.ListAPIView):
 
 
 
+
 class PersonalStartupList(generics.ListAPIView):
     """
     A view to list startups created by the current user.
@@ -170,4 +176,5 @@ class PersonalStartupList(generics.ListAPIView):
         user_id = self.request.user.id
         # Filter startups created by the current user
         return Startup.objects.filter(userstartup__customuser=user_id)
+
 
