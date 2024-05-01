@@ -14,4 +14,5 @@ urlpatterns = [
     path('email-verify/<token>/', views.VerifyEmailView.as_view(), name='email-verify'),
     path('password-recovery/', views.PasswordRecoveryView.as_view(), name='password-recovery'),
     path('password-reset/<token>/', views.PasswordResetView.as_view(), name='password-reset'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
 ]

@@ -1,3 +1,4 @@
+from rest_framework_simplejwt.exceptions import TokenError
 import jwt
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
@@ -6,9 +7,15 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import (TokenObtainPairView as BaseTokenObtainPairView,
-                                            TokenRefreshView as BaseTokenRefreshView)
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView as BaseTokenObtainPairView,
+    TokenRefreshView as BaseTokenRefreshView,
+)
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed
 from django.http import JsonResponse
+from rest_framework.exceptions import ValidationError
+
 
 from .models import CustomUser
 from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer
@@ -22,6 +29,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
         response = super().post(request, *args, **kwargs)
 
         token = response.data.get('access')
+        refresh_token = response.data.get('refresh')
 
         if token:
             # Set the token in a cookie with appropriate settings
@@ -33,6 +41,17 @@ class TokenObtainPairView(BaseTokenObtainPairView):
                 secure=True,  # If using HTTPS
                 samesite='Strict',
                 # helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
+            )
+        
+        if refresh_token:
+            # Set the refresh token in a separate cookie
+            response.set_cookie(
+                'refresh_token',
+                refresh_token,
+                max_age=400,
+                httponly=True,
+                secure=True,
+                samesite='Strict',
             )
 
         return response
@@ -254,8 +273,21 @@ class PasswordResetView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# boilerplate (for a future "logout" endpoint) to delete the JWT token from cookies
-def logout(request):
-    response = JsonResponse({"message": "Logged out"})
-    response.delete_cookie('jwt_token')  # Delete the JWT cookie
-    return response
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            refresh_token = request.COOKIES.get('refresh_token')
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            response = Response({"message": "User successfully logged out."}, status=status.HTTP_200_OK)
+            response.delete_cookie('jwt_token')
+            response.delete_cookie('refresh_token')
+            return response
+        except TokenError:
+            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        except KeyError:
+            return Response({"error": "Refresh token not provided."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
