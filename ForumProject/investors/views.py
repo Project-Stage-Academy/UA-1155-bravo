@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from investors.models import Investor
 from investors.serializers import InvestorSerializer
 from users.models import UserInvestor
-from users.permissions import InvestorPermission
 
 
 class InvestorViewSet(viewsets.ModelViewSet):

@@ -1,9 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status, generics
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
-from users.permissions import StartupPermission
+from users.permissions import IsRoleSelected, IsStartupRole, IsInvestorRole, IsStartupCompanySelected, \
+    IsCompanySelected, AnyPermission
 from .models import Startup
 from .serializers import StartupSerializer
 from rest_framework.views import APIView
@@ -26,8 +28,18 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all()
     serializer_class = StartupSerializer
-    # permission_classes = [StartupPermission,]
-    
+
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            permission_classes = [IsInvestorRole | IsStartupCompanySelected]
+        elif self.action == 'create':
+            permission_classes = [IsStartupRole]
+        elif self.action == 'update' or self.action == 'partial_update' or self.action == 'destroy':
+            permission_classes = [IsStartupCompanySelected]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
     def create(self, request, *args, **kwargs):
         """
          Handle create requests to create a startup for a user.
@@ -50,7 +62,31 @@ class StartupViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    def retrieve(self, request, *args, **kwargs):
+        if request.user.user_info.company_id != kwargs['pk'] and request.user.user_info.role != 'investor':
+            return Response({'error': 'You have no permission to view this startup'}, status=status.HTTP_400_BAD_REQUEST)
+        startup = get_object_or_404(self.queryset, pk=kwargs['pk'])
+        serializer = self.serializer_class(startup)
+        return Response(serializer.data)
 
+    def update(self, request, *args, **kwargs):
+        if request.user.user_info.company_id != kwargs['pk']:
+            return Response({'error': 'You have no permission to update startup'}, status=status.HTTP_400_BAD_REQUEST)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        if request.user.user_info.company_id != kwargs['pk']:
+            return Response({'error': 'You have no permission to update startup'}, status=status.HTTP_400_BAD_REQUEST)
+        instance = self.get_object()
+        partial = kwargs.pop('partial', True)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -67,7 +103,8 @@ class StartupViewSet(viewsets.ModelViewSet):
         Raises:
             PermissionDenied: If the startup has ongoing projects, deletion is not allowed.
         """
-        
+        if request.user.user_info.company_id != kwargs['pk']:
+            return Response({'error': 'You have no permission to delete startup'}, status=status.HTTP_400_BAD_REQUEST)
         instance = self.get_object()
         projects = Project.objects.filter(startup_id=instance.id)
         
@@ -117,6 +154,7 @@ class StartupList(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = StartupFilter
     pagination_class = StandardResultsSetPagination
+    permission_classes = [IsInvestorRole]
     
     
 class StartupListDetailfilter(generics.ListAPIView):
