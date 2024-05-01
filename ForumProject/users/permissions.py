@@ -1,8 +1,4 @@
-from django.db.models import Q
 from rest_framework.permissions import BasePermission
-
-from projects.models import InvestorProject
-from .models import UserStartup, UserInvestor
 
 
 class IsRoleSelected(BasePermission):
@@ -44,11 +40,3 @@ class IsRole(BasePermission):
         if request.user.user_info.role not in ['startup', 'investor']:
             return False
         return True
-
-
-class AnyPermission(BasePermission):
-    def __init__(self, *perms):
-        self.perms = perms
-
-    def has_permission(self, request, view):
-        return any(perm().has_permission(request, view) for perm in self.perms)

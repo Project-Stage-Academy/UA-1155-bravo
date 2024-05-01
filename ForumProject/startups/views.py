@@ -4,8 +4,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
-from users.permissions import IsRoleSelected, IsStartupRole, IsInvestorRole, IsStartupCompanySelected, \
-    IsCompanySelected, AnyPermission
+from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected
 from .models import Startup
 from .serializers import StartupSerializer
 from rest_framework.views import APIView
