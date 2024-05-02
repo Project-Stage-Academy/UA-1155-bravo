@@ -1,11 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
-from rest_framework import viewsets, status
-from users.models import UserInvestor
 from users.permissions import IsInvestorCompanySelected, IsInvestorRole
-from .serializers import InvestorSerializer
-from .models import Investor
-from django.db.migrations import serializer
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from investors.models import Investor
