@@ -237,10 +237,11 @@ class StartupCreationTestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(Startup.objects.count(), 1)  # Startup should not be deleted
+        self.assertEqual(Startup.objects.count(), 1)  
         
          
-        # filters search
+        
+    # filters search
         
     @transaction.atomic
     def test_search_startup(self):
@@ -268,6 +269,7 @@ class StartupCreationTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['startup_name'], 'TestStartup1')
+        
         
         
     @transaction.atomic
@@ -323,6 +325,8 @@ class StartupCreationTestCase(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 5)  
+        
+
 
 
 class StartupViewSetTestCase(APITestCase):
@@ -370,6 +374,7 @@ class StartupViewSetTestCase(APITestCase):
         # Checking availability of the startup list
         response = self.client.get(reverse('startups:startup-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Startup.objects.count(), 1)
     
 
     def test_retrieve_single_startup(self):
@@ -379,6 +384,7 @@ class StartupViewSetTestCase(APITestCase):
         # Checking availability of a single startup
         response = self.client.get(reverse('startups:startup-detail', args=[self.startup.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Startup.objects.count(), 1)
     
     
     def test_edit_invalid_phone_number(self):
@@ -391,6 +397,7 @@ class StartupViewSetTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.startup.refresh_from_db()
         self.assertNotEqual(self.startup.startup_phone, new_phone)
+        self.assertEqual(Startup.objects.count(), 1)
 
 
     def update_startup(self, startup_id, data):
@@ -424,6 +431,7 @@ class StartupViewSetTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(self.startup.startup_name, 'UpdatedStartup2')
+        self.assertEqual(Startup.objects.count(), 1)
 
     def test_edit_startup_industry(self):
         '''
@@ -450,6 +458,7 @@ class StartupViewSetTestCase(APITestCase):
             self.fail(f"An error occurred when refreshing the object from the database: {e}")
 
         self.assertEqual(self.startup.startup_industry, new_industry)
+        self.assertEqual(Startup.objects.count(), 1)
 
     def test_edit_startup_name(self):
         '''
@@ -476,6 +485,7 @@ class StartupViewSetTestCase(APITestCase):
             self.fail(f"An error occurred when refreshing the object from the database: {e}")
 
         self.assertEqual(self.startup.startup_name, new_name)
+        self.assertEqual(Startup.objects.count(), 1)
     
 
     def test_delete_startup(self):
@@ -486,4 +496,69 @@ class StartupViewSetTestCase(APITestCase):
         response = self.client.delete(reverse('startups:startup-detail', args=[self.startup.id]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Startup.objects.filter(id=self.startup.id).exists())
- 
+        self.assertEqual(Startup.objects.count(), 0)
+        
+
+    def test_update_nonexistent_startup(self):
+        '''
+        Test Updating Non-existent Startup
+        '''
+        nonexistent_id = 9999  # This ID doesn't exist in the database
+        url = reverse('startups:startup-detail', args=[nonexistent_id])
+        response = self.client.put(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+    def test_delete_nonexistent_startup(self):
+        '''
+        Test Deleting Non-existent Startup
+        '''
+        nonexistent_id = 9999  # This ID doesn't exist in the database
+        url = reverse('startups:startup-detail', args=[nonexistent_id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+    def test_invalid_data_format(self):
+        '''
+        Test Providing Invalid Data Format
+        '''
+        url = reverse('startups:startup-detail', args=[self.startup.id])
+        invalid_data = {
+            'startup_name': 123,  
+            'startup_industry': 'Finance',
+            'startup_country': 'AAA',
+        }
+        response = self.client.put(url, invalid_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+        
+
+
+    def test_delete_startup(self):
+        '''
+        Test Deleting Startup
+        '''
+        url = reverse('startups:startup-detail', args=[self.startup.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Startup.objects.count(), 0)
+
+
+    def test_empty_data(self):
+        '''
+        Test Providing Empty Data
+        '''
+        url = reverse('startups:startup-detail', args=[self.startup.id])
+        response = self.client.put(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+    def test_malformed_data(self):
+        '''
+        Test Providing Malformed Data
+        '''
+        url = reverse('startups:startup-detail', args=[self.startup.id])
+        malformed_data = {'startup_name': 123}  
+        response = self.client.put(url, malformed_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

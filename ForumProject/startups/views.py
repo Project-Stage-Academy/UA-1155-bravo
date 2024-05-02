@@ -163,7 +163,8 @@ class PersonalStartupList(generics.ListAPIView):
 
     """
     serializer_class = StartupSerializer
-    permission_classes = [IsAuthenticated]  
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination  
 
     def get_queryset(self):
         """
@@ -174,7 +175,6 @@ class PersonalStartupList(generics.ListAPIView):
 
         """
         user_id = self.request.user.id
-        # Filter startups created by the current user
         return Startup.objects.filter(userstartup__customuser=user_id)
-
+        
 
