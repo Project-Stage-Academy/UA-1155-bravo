@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
-from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected
+from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember
 from .models import Startup
 from .serializers import StartupSerializer
 from rest_framework.views import APIView
@@ -30,11 +30,11 @@ class StartupViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'retrieve':
-            permission_classes = [IsInvestorRole | IsStartupCompanySelected]
+            permission_classes = [IsInvestorRole | IsCompanyMember]
         elif self.action == 'create':
             permission_classes = [IsStartupRole]
         elif self.action == 'update' or self.action == 'partial_update' or self.action == 'destroy':
-            permission_classes = [IsStartupCompanySelected]
+            permission_classes = [IsCompanyMember]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
@@ -61,32 +61,6 @@ class StartupViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def retrieve(self, request, *args, **kwargs):
-        if request.user.user_info.company_id != kwargs['pk'] and request.user.user_info.role != 'investor':
-            return Response({'error': 'You have no permission to view this startup'}, status=status.HTTP_400_BAD_REQUEST)
-        startup = get_object_or_404(self.queryset, pk=kwargs['pk'])
-        serializer = self.serializer_class(startup)
-        return Response(serializer.data)
-
-    def update(self, request, *args, **kwargs):
-        if request.user.user_info.company_id != kwargs['pk']:
-            return Response({'error': 'You have no permission to update startup'}, status=status.HTTP_400_BAD_REQUEST)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
-
-    def partial_update(self, request, *args, **kwargs):
-        if request.user.user_info.company_id != kwargs['pk']:
-            return Response({'error': 'You have no permission to update startup'}, status=status.HTTP_400_BAD_REQUEST)
-        instance = self.get_object()
-        partial = kwargs.pop('partial', True)
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
-
     def destroy(self, request, *args, **kwargs):
         """
         The destroy method, which gives access to deletion only if all projects in the startup have the status - closed.
@@ -102,8 +76,6 @@ class StartupViewSet(viewsets.ModelViewSet):
         Raises:
             PermissionDenied: If the startup has ongoing projects, deletion is not allowed.
         """
-        if request.user.user_info.company_id != kwargs['pk']:
-            return Response({'error': 'You have no permission to delete startup'}, status=status.HTTP_400_BAD_REQUEST)
         instance = self.get_object()
         projects = Project.objects.filter(startup_id=instance.id)
         

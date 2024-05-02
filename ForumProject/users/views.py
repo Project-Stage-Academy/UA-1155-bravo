@@ -1,6 +1,7 @@
 import jwt
 from django.conf import settings
 from django.contrib.sites.shortcuts import get_current_site
+from django.shortcuts import get_object_or_404
 from rest_framework import status, generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -73,13 +74,10 @@ class RoleSelectionView(APIView):
         serializer = RoleSerializer(data=request.data)
         if serializer.is_valid():
             user = request.user
-            if UserRoleCompany.objects.filter(user=user).exists():
-                user_role = UserRoleCompany.objects.get(user=user)
-                user_role.role = serializer.validated_data['role']
-                user_role.company_id = 0
-                user_role.save()
-            else:
-                UserRoleCompany.objects.create(user=user, role=serializer.validated_data['role'])
+            user_role_company = UserRoleCompany.objects.get_or_create(user=user, defaults={'role': serializer.validated_data['role']})
+            user_role_company[0].role = serializer.validated_data['role']
+            user_role_company[0].company_id = None
+            user_role_company[0].save()
             return Response({'success': 'Role has been successfully updated.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -93,22 +91,17 @@ class CompanySelectionView(APIView):
             user = request.user
             company = serializer.validated_data['company_id']
 
-            user_role_company = UserRoleCompany.objects.get(user=user)
+            user_role_company = get_object_or_404(UserRoleCompany, user=user)
 
-            if user_role_company.role == 'investor':
-                user_investors = UserInvestor.objects.filter(customuser=self.request.user).values('investor')
-                if {'investor': company} in user_investors:
-                    user_role_company.company_id = company
-                    user_role_company.save()
-                    return Response({'success': 'The investor company was successfully selected'}, status=status.HTTP_200_OK)
+            if user_role_company.role == 'investor' and get_object_or_404(UserInvestor, customuser=user, investor=company):
+                user_role_company.company_id = company
+                user_role_company.save()
+                return Response({'success': 'The investor company was successfully selected'}, status=status.HTTP_200_OK)
 
-            elif user_role_company.role == 'startup':
-                user_startups = UserStartup.objects.filter(customuser=self.request.user).values('startup')
-                if {'startup': company} in user_startups:
-                    user_role_company.company_id = company
-                    user_role_company.save()
-                    return Response({'success': 'The startup company was successfully selected'}, status=status.HTTP_200_OK)
-            return Response({'error': 'You must select only your company'}, status=status.HTTP_400_BAD_REQUEST)
+            elif user_role_company.role == 'startup' and get_object_or_404(UserStartup, customuser=user, startup=company):
+                user_role_company.company_id = company
+                user_role_company.save()
+                return Response({'success': 'The startup company was successfully selected'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -116,7 +109,7 @@ class UserCompanyView(generics.ListAPIView):
     permission_classes = []  # write permission only for users with role
 
     def get_serializer_class(self):
-        user = UserRoleCompany.objects.get(user=self.request.user)
+        user = get_object_or_404(UserRoleCompany, user=self.request.user)
         user_role = user.role
 
         if user_role == 'startup':
@@ -125,14 +118,14 @@ class UserCompanyView(generics.ListAPIView):
             return InvestorSerializer
 
     def get_queryset(self):
-        user = UserRoleCompany.objects.get(user=self.request.user)
+        user = get_object_or_404(UserRoleCompany, user=self.request.user)
         user_role = user.role
 
         if user_role == 'startup':
-            user_startups = UserStartup.objects.filter(customuser=self.request.user).values('startup')
+            user_startups = UserStartup.objects.filter(customuser=self.request.user).values_list('startup', flat=True)
             return Startup.objects.filter(id__in=user_startups)
         elif user_role == 'investor':
-            user_investors = UserInvestor.objects.filter(customuser=self.request.user).values('investor')
+            user_investors = UserInvestor.objects.filter(customuser=self.request.user).values_list('investor', flat=True)
             return Investor.objects.filter(id__in=user_investors)
 
 
@@ -167,7 +160,7 @@ class UserRegistrationView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             new_user = serializer.save()
-            
+
             token = RefreshToken.for_user(new_user).access_token
             message_data = {
                 'subject': 'Verify your email',

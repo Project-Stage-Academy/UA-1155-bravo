@@ -1,4 +1,7 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import BasePermission
+
+from projects.models import Project
 
 
 class IsRoleSelected(BasePermission):
@@ -40,3 +43,20 @@ class IsRole(BasePermission):
         if request.user.user_info.role not in ['startup', 'investor']:
             return False
         return True
+
+
+class IsCompanyMember(BasePermission):
+    def has_permission(self, request, view):
+        try:
+            return request.user.user_info.company_id == view.kwargs['pk']
+        except AttributeError:
+            return False
+
+
+class IsProjectMember(BasePermission):
+    def has_permission(self, request, view):
+        try:
+            project = get_object_or_404(Project, pk=view.kwargs['pk'])
+            return request.user.user_info.company_id == project.startup.id
+        except AttributeError:
+            return False
