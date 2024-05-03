@@ -19,13 +19,13 @@ admin.site.register(Project, ProjectAdmin)
 
 class ProjectFilesAdmin(admin.ModelAdmin):
     list_display = ['id', 'project', 'file_description', 'file']
-    search_fields = ['id', 'project', 'file_description', 'file']
+    search_fields = ['project', 'file_description']
 
 admin.site.register(ProjectFiles, ProjectFilesAdmin)
 
 class InvestorProjectAdmin(admin.ModelAdmin):
     list_display = ['id', 'investor', 'project', 'share']
-    search_fields = ['id', 'investor', 'project']
+    search_fields = ['investor', 'project']
 
 admin.site.register(InvestorProject, InvestorProjectAdmin)
 
