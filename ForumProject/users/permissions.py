@@ -70,14 +70,16 @@ class IsCompanySelected(BasePermission):
 
 class IsStartupCompanySelected(IsCompanySelected):
     """
-    Permission class to check if the authenticated user, with the role of a startup, has selected a company.
+    Permission class to check if the authenticated user, with the role of a startup,
+    has selected a company.
     """
     ROLE = 'startup'
 
 
 class IsInvestorCompanySelected(IsCompanySelected):
     """
-    Permission class to check if the authenticated user, with the role of an investor, has selected a company.
+    Permission class to check if the authenticated user, with the role of an investor,
+    has selected a company.
     """
     ROLE = 'investor'
 
@@ -129,9 +131,11 @@ class IsCompanyMember(BasePermission):
 
 class IsProjectMember(BasePermission):
     """
-    Permission class to check if the authenticated user is a member of the startup associated with a project.
+    Permission class to check if the authenticated user is a member of
+    the startup associated with a project.
 
-    The user is considered a member if their company_id matches the ID of the startup associated with the project.
+    The user is considered a member if their company_id matches
+    the ID of the startup associated with the project.
     """
     def has_permission(self, request, view):
         """
@@ -142,7 +146,8 @@ class IsProjectMember(BasePermission):
             view: The view object.
 
         Returns:
-            bool: True if the user is a member of the startup associated with the project, False otherwise.
+            bool: True if the user is a member of the startup associated with the project,
+                  False otherwise.
         """
         try:
             project = get_object_or_404(Project, pk=view.kwargs['pk'])

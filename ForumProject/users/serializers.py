@@ -3,22 +3,52 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.validators import UniqueValidator
 
-from .models import CustomUser, UserRoleCompany, UserStartup
+from .models import CustomUser, UserRoleCompany
 from .validators import CustomUserValidator
 
 
 class RoleSerializer(serializers.ModelSerializer):
+    """
+    Serializer for validating and serializing user roles.
+
+    This serializer is used to validate and serialize user roles for the UserRoleCompany model.
+
+    Attributes:
+    model (Model): The model class associated with the serializer.
+    fields (list): The fields to include in the serialized representation.
+    """
     class Meta:
         model = UserRoleCompany
         fields = ['role']
 
     def validate_role(self, value):
+        """
+        Validate the role value.
+
+        Args:
+            value (str): The role value to validate.
+
+        Raises:
+            ValidationError: If the role value is not 'startup' or 'investor'.
+
+        Returns:
+            str: The validated role value.
+        """
         if value not in ['startup', 'investor']:
             raise serializers.ValidationError("Role should be a startup or an investor")
         return value
 
 
 class CompanySerializer(serializers.ModelSerializer):
+    """
+    Serializer for validating and serializing company IDs associated with user roles.
+
+    This serializer is used to validate and serialize company IDs for the UserRoleCompany model.
+
+    Attributes:
+    model (Model): The model class associated with the serializer.
+    fields (list): The fields to include in the serialized representation.
+    """
     class Meta:
         model = UserRoleCompany
         fields = ['company_id']
@@ -72,7 +102,8 @@ class UserRegisterSerializer(BasePasswordSerializer):
     """
     first_name = serializers.CharField(required=True, max_length=20)
     last_name = serializers.CharField(required=True, max_length=20)
-    email = serializers.EmailField(required=True, validators=[UniqueValidator(queryset=CustomUser.objects.all())])
+    email = serializers.EmailField(required=True,
+                                   validators=[UniqueValidator(queryset=CustomUser.objects.all())])
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
     phone_number = serializers.CharField(required=True)
@@ -92,7 +123,8 @@ class UserRegisterSerializer(BasePasswordSerializer):
         - dict: A dictionary containing the validated registration data.
 
         Raises:
-        - serializers.ValidationError: If password fields don't match or password/phone number are invalid.
+        - serializers.ValidationError:
+        If password fields don't match or password/phone number are invalid.
         """
         self.validate_passwords(attrs.get('password'), attrs.get('password2'))
 

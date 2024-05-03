@@ -17,15 +17,32 @@ from startups.models import Startup
 from startups.serializers import StartupSerializer
 from .models import CustomUser, UserRoleCompany, UserStartup, UserInvestor
 from .permissions import IsRole
-from .serializers import UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer, RoleSerializer, \
-    CompanySerializer
+from .serializers import (UserRegisterSerializer, RecoveryEmailSerializer, PasswordResetSerializer,
+                          RoleSerializer, CompanySerializer)
 from .utils import Util
 
 
 class TokenObtainPairView(BaseTokenObtainPairView):
+    """
+    Custom view for obtaining JWT token pairs (access token and refresh token).
+
+    Attributes:
+        throttle_scope (str): The throttle scope for rate limiting token obtain requests.
+    """
     throttle_scope = 'token_obtain'
 
     def post(self, request, *args, **kwargs):
+        """
+        Handle POST requests to obtain JWT token pairs and set the access token in a cookie.
+
+        Args:
+            request (Request): The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Response: The HTTP response object containing the token pairs and cookie.
+        """
         response = super().post(request, *args, **kwargs)
 
         token = response.data.get('access')
@@ -39,16 +56,36 @@ class TokenObtainPairView(BaseTokenObtainPairView):
                 httponly=True,  # To prevent JavaScript access
                 secure=True,  # If using HTTPS
                 samesite='Strict',
-                # helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of unauthorized cross-site data exchange
+                # helps prevent Cross-Site Request Forgery (CSRF) attacks and reduces the risk of
+                # unauthorized cross-site data exchange
             )
 
         return response
 
 
 class TokenRefreshView(BaseTokenRefreshView):
+    """
+    Custom view for refreshing JWT access tokens.
+
+    Attributes:
+        throttle_scope (str): The throttle scope for rate limiting token refresh requests.
+    """
     throttle_scope = 'token_refresh'
 
     def post(self, request, *args, **kwargs):
+        """
+        Handle POST requests to refresh JWT access tokens and set
+        the refreshed access token in a cookie.
+
+        Args:
+            request (Request): The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Response: The HTTP response object containing
+                      the refreshed access token and cookie.
+        """
         response = super().post(request, *args, **kwargs)
 
         # Get the refreshed token from the response data
@@ -92,11 +129,13 @@ class RoleSelectionView(APIView):
         serializer = RoleSerializer(data=request.data)
         if serializer.is_valid():
             user = request.user
-            user_role_company = UserRoleCompany.objects.get_or_create(user=user, defaults={'role': serializer.validated_data['role']})
+            user_role_company = UserRoleCompany.objects.get_or_create(user=user, defaults={
+                'role': serializer.validated_data['role']})
             user_role_company[0].role = serializer.validated_data['role']
             user_role_company[0].company_id = None
             user_role_company[0].save()
-            return Response({'success': 'Role has been successfully updated.'}, status=status.HTTP_200_OK)
+            return Response({'success': 'Role has been successfully updated.'},
+                            status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -132,15 +171,19 @@ class CompanySelectionView(APIView):
 
             user_role_company = get_object_or_404(UserRoleCompany, user=user)
 
-            if user_role_company.role == 'investor' and get_object_or_404(UserInvestor, customuser=user, investor=company):
+            if user_role_company.role == 'investor' and get_object_or_404(UserInvestor, customuser=user,
+                                                                          investor=company):
                 user_role_company.company_id = company
                 user_role_company.save()
-                return Response({'success': 'The investor company was successfully selected'}, status=status.HTTP_200_OK)
+                return Response({'success': 'The investor company was successfully selected'},
+                                status=status.HTTP_200_OK)
 
-            elif user_role_company.role == 'startup' and get_object_or_404(UserStartup, customuser=user, startup=company):
+            elif user_role_company.role == 'startup' and get_object_or_404(UserStartup, customuser=user,
+                                                                           startup=company):
                 user_role_company.company_id = company
                 user_role_company.save()
-                return Response({'success': 'The startup company was successfully selected'}, status=status.HTTP_200_OK)
+                return Response({'success': 'The startup company was successfully selected'},
+                                status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -185,8 +228,9 @@ class UserCompanyView(generics.ListAPIView):
         if user_role == 'startup':
             user_startups = UserStartup.objects.filter(customuser=self.request.user).values_list('startup', flat=True)
             return Startup.objects.filter(id__in=user_startups)
-        elif user_role == 'investor':
-            user_investors = UserInvestor.objects.filter(customuser=self.request.user).values_list('investor', flat=True)
+        if user_role == 'investor':
+            user_investors = UserInvestor.objects.filter(customuser=self.request.user).values_list('investor',
+                                                                                                   flat=True)
             return Investor.objects.filter(id__in=user_investors)
 
 
@@ -268,15 +312,16 @@ class VerifyEmailView(APIView):
                 user.is_active = True
                 user.save()
             return Response({'email': 'Successfully activated'}, status=status.HTTP_200_OK)
-        except jwt.ExpiredSignatureError as identifier:
+        except jwt.ExpiredSignatureError:
             return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
-        except jwt.exceptions.DecodeError as identifier:
+        except jwt.exceptions.DecodeError:
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PasswordRecoveryView(APIView):
     """
-    API endpoint for initiating the password recovery process by sending a recovery email to the user's email address.
+    API endpoint for initiating the password recovery process by sending
+    a recovery email to the user's email address.
 
     Request Payload:
     - email: The email address of the user requesting password recovery.
@@ -293,7 +338,8 @@ class PasswordRecoveryView(APIView):
     - AllowAny: Publicly accessible endpoint.
 
     Methods:
-    - POST: Initiates the password recovery process by sending a recovery email to the user's email address.
+    - POST: Initiates the password recovery process by sending
+    a recovery email to the user's email address.
 
     Example Usage:
     ```
@@ -307,6 +353,27 @@ class PasswordRecoveryView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """
+        Handle POST requests to send a password reset email.
+
+        This method retrieves the email address from the request data,
+        validates it using the RecoveryEmailSerializer,
+        and sends a password reset email to the user if the email is valid
+        and associated with an existing user account.
+
+        Args:
+            request (Request): The HTTP request object containing
+            the email address in the data payload.
+
+        Returns:
+            Response: The HTTP response object indicating the status of the email sending process.
+                - If the email is valid and sent successfully, it returns
+                  a success message with status code 200.
+                - If the email is invalid or not associated with an existing user account,
+                  it returns an error message with status code 200.
+                - If there are validation errors in the serializer,
+                  it returns the serializer errors with status code 200.
+        """
         email = request.data.get('email')
 
         serializer = RecoveryEmailSerializer(data=request.data)
@@ -321,7 +388,7 @@ class PasswordRecoveryView(APIView):
                 Util.send_email(get_current_site(request).domain, 'users:password-reset', user, token, message_data)
                 return Response({'success': 'Email was sent successfully'}, status=status.HTTP_200_OK)
             except CustomUser.DoesNotExist:
-                #return 200 instead of HTTP_400_BAD_REQUEST
+                # return 200 instead of HTTP_400_BAD_REQUEST
                 return Response({'error': 'User does not exist'}, status=status.HTTP_200_OK)
         # return 200 instead of HTTP_400_BAD_REQUEST
         return Response(serializer.errors, status=status.HTTP_200_OK)
@@ -374,10 +441,11 @@ class PasswordResetView(APIView):
                     user = CustomUser.objects.get(id=payload['user_id'])
                     user.set_password(serializer.validated_data.get('password'))
                     user.save()
-                    return Response({'success': 'Password has been successfully updated'}, status=status.HTTP_200_OK)
-            except jwt.ExpiredSignatureError as identifier:
+                    return Response({'success': 'Password has been successfully updated'},
+                                    status=status.HTTP_200_OK)
+            except jwt.ExpiredSignatureError:
                 return Response({'error': 'Activation Expired'}, status=status.HTTP_400_BAD_REQUEST)
-            #added CustomUser.DoesNotExist as a sign of invalid token
+            # added CustomUser.DoesNotExist as a sign of invalid token
             except (jwt.exceptions.DecodeError, CustomUser.DoesNotExist):
                 return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
