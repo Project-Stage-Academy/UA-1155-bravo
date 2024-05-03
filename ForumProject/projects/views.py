@@ -23,6 +23,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
 
     def get_permissions(self):
+        """
+        Return the list of permission instances for the current action.
+
+        Depending on the action (e.g., 'list', 'retrieve', 'create', 'update', 'partial_update', 'destroy'),
+        different permission classes are applied to control access to the viewset.
+
+        Returns:
+            List[BasePermission]: List of permission instances.
+        """
         if self.action == 'list':
             permission_classes = [IsInvestorRole]
         elif self.action == 'retrieve':
@@ -36,6 +45,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def create(self, request, *args, **kwargs):
+        """
+        Handle create requests to create a new project.
+
+        Args:
+            request (Request): The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Response: Response object with serialized data and appropriate status code.
+        """
         user = request.user
         startup_id = user.user_info.company_id
         modified_data = request.data.copy()

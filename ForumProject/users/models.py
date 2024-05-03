@@ -120,7 +120,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
 
 class UserRoleCompany(models.Model):
+    """
+    Model representing the role and associated company for a user.
+
+    Attributes:
+        user (CustomUser): The user associated with the role.
+        role (str): The role of the user, which can be 'startup', 'investor', or 'undefined'.
+        company_id (int, optional): The ID of the company associated with the user, if applicable.
+                                    Defaults to None.
+    """
     class Role(models.TextChoices):
+        """
+        Enumeration defining the possible roles for a user.
+        """
         STARTUP = 'startup', 'startup'
         INVESTOR = 'investor', 'investor'
         UNDEFINED = 'undefined', 'undefined'

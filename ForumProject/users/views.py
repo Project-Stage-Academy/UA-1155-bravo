@@ -68,9 +68,27 @@ class TokenRefreshView(BaseTokenRefreshView):
 
 
 class RoleSelectionView(APIView):
+    """
+    API endpoint for updating the role of the authenticated user.
+
+    Returns a success message if the role is successfully updated.
+
+    Permissions:
+    - The user must be authenticated.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+        Update the role of the authenticated user.
+
+        Parameters:
+        - role (str): The new role(startup/investor) to assign to the user.
+
+        Returns:
+        - Response with success message if the role is successfully updated.
+        - Response with validation errors if the provided data is invalid.
+        """
         serializer = RoleSerializer(data=request.data)
         if serializer.is_valid():
             user = request.user
@@ -83,9 +101,30 @@ class RoleSelectionView(APIView):
 
 
 class CompanySelectionView(APIView):
+    """
+    API endpoint for selecting a company for the authenticated user.
+
+    Returns a success message if the company is successfully selected.
+
+    Permissions:
+    - The user must have the appropriate role to select a company.
+    """
     permission_classes = [IsRole]
 
     def post(self, request):
+        """
+        Select a company for the authenticated user with the appropriate role.
+
+        Parameters:
+        - company_id: The ID of the company to select for the user.
+
+        Returns:
+        - Response with success message if the company is successfully selected.
+        - Response with validation errors if the provided data is invalid.
+        - Response with 404 error if the user or company does not exist.
+        - Response with 400 error if the company cannot be selected.
+        - Response with 403 error if the user does not have the appropriate role.
+        """
         serializer = CompanySerializer(data=request.data)
         if serializer.is_valid():
             user = request.user
@@ -106,9 +145,24 @@ class CompanySelectionView(APIView):
 
 
 class UserCompanyView(generics.ListAPIView):
-    permission_classes = []  # write permission only for users with role
+    """
+    API endpoint for retrieving companies associated with the authenticated user.
+
+    Returns a list of companies based on the user's role.
+
+    Permissions:
+    - The user must have the appropriate role to access this endpoint.
+    """
+    permission_classes = [IsRole]
 
     def get_serializer_class(self):
+        """
+        Return the serializer class based on the user's role.
+
+        Returns:
+        - StartupSerializer if the user has a 'startup' role.
+        - InvestorSerializer if the user has an 'investor' role.
+        """
         user = get_object_or_404(UserRoleCompany, user=self.request.user)
         user_role = user.role
 
@@ -118,6 +172,13 @@ class UserCompanyView(generics.ListAPIView):
             return InvestorSerializer
 
     def get_queryset(self):
+        """
+        Return the queryset of companies based on the user's role.
+
+        Returns:
+        - Queryset of startups if the user has a 'startup' role.
+        - Queryset of investors if the user has an 'investor' role.
+        """
         user = get_object_or_404(UserRoleCompany, user=self.request.user)
         user_role = user.role
 
@@ -131,14 +192,14 @@ class UserCompanyView(generics.ListAPIView):
 
 class UserRegistrationView(APIView):
     """
-       A view for user registration.
+    A view for user registration.
 
-       This view handles POST requests for user registration.
-       It receives user registration data, validates it, creates a new user if valid,
-       generates an authentication token, and sends a confirmation email to the user.
+    This view handles POST requests for user registration.
+    It receives user registration data, validates it, creates a new user if valid,
+    generates an authentication token, and sends a confirmation email to the user.
 
-       Attributes:
-       - permission_classes: The list of permission classes applied to this view.
+    Attributes:
+    - permission_classes: The list of permission classes applied to this view.
     """
     permission_classes = [AllowAny]
 

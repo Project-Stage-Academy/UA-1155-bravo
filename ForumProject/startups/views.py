@@ -29,6 +29,15 @@ class StartupViewSet(viewsets.ModelViewSet):
     serializer_class = StartupSerializer
 
     def get_permissions(self):
+        """
+        Return the list of permission instances for the current action.
+
+        Depending on the action (e.g., 'retrieve', 'create', 'update', 'partial_update', 'destroy'),
+        different permission classes are applied to control access to the viewset.
+
+        Returns:
+            List[BasePermission]: List of permission instances.
+        """
         if self.action == 'retrieve':
             permission_classes = [IsInvestorRole | IsCompanyMember]
         elif self.action == 'create':
