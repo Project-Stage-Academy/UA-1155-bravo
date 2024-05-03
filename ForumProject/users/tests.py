@@ -4,6 +4,11 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import CustomUser
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.test import TestCase, Client
+
+from rest_framework.test import APIClient
+from users.models import CustomUser
+from django.urls import reverse
 
 
 class UserRegistration(APITestCase):
@@ -208,3 +213,63 @@ class TokenObtainPairViewTests(APITestCase):
         data = {'email': 'test@gmail.com'}
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutViewTest(TestCase):
+    def setUp(self):
+        # Create a test user with the correct information
+        self.user = CustomUser.objects.create_user(
+            email='test@gmail.com',
+            password='Pa88word',
+            first_name='Yetit',
+            last_name='Kolotit',
+            phone_number='+1234567890',
+            is_active=True
+        )
+        self.client = APIClient()
+
+        # Login to obtain tokens
+        self.login_url = reverse('users:token_obtain_pair')
+        self.logout_url = reverse('users:logout')
+
+        response = self.client.post(
+            self.login_url,
+            data={'email': 'test@gmail.com', 'password': 'Pa88word'},
+        )
+
+        # Check for success status
+        if response.status_code != status.HTTP_200_OK:
+            raise RuntimeError(f"Failed to log in. Status code: {response.status_code}. Response: {response.data}")
+
+        # Check if the tokens are present in the response
+        if 'access' not in response.data or 'refresh' not in response.data:
+            raise KeyError("Missing 'access' or 'refresh' tokens in response data")
+
+        self.access_token = response.data['access']
+        self.refresh_token = response.data['refresh']
+
+        # Set the tokens in the client cookies
+        self.client.cookies['jwt_token'] = self.access_token
+        self.client.cookies['refresh_token'] = self.refresh_token
+
+    def test_logout_successful(self):
+        # Perform the logout test
+        response = self.client.post(self.logout_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("User successfully logged out.", response.data["message"])
+
+        # Check the JWT token cookies are either not set or has an expired date
+        jwt_cookie = response.cookies.get('jwt_token')
+        self.assertTrue(jwt_cookie is None or jwt_cookie.value == '')
+
+        refresh_cookie = response.cookies.get('refresh_token')
+        self.assertTrue(refresh_cookie is None or refresh_cookie.value == '')
+
+    def test_logout_without_token(self):
+        # Clear the client cookies
+        self.client.cookies.clear()
+
+        # Test logout without tokens
+        response = self.client.post(self.logout_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("Authentication credentials were not provided.", response.data["detail"])

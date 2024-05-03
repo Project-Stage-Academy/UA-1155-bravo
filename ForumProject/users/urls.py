@@ -18,4 +18,5 @@ urlpatterns = [
     path('role-selection/', views.RoleSelectionView.as_view(), name='role-selection'),
     path('company-selection/', views.CompanySelectionView.as_view(), name='company-selection'),
     path('user-companies/', views.UserCompanyView.as_view(), name='user-companies'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
 ]
