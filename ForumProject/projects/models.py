@@ -114,8 +114,7 @@ class Project(models.Model):
 
 class ProjectFiles(models.Model):
 
-    @staticmethod
-    def _generate_upload_path(project, filename):
+    def _generate_upload_path(self, filename):
         '''
         The function creates a valid path for each Project's documentation upload
         and ensures renaming of the file being uploaded if its name is not unique in 
@@ -123,8 +122,8 @@ class ProjectFiles(models.Model):
         '''
         try:
             # Replace special characters with underscores and truncate to 20 characters
-            startup_slug = slugify(project.startup.startup_name)[:20]
-            project_slug = slugify(project.name)[:20]
+            startup_slug = slugify(self.project.startup.startup_name)[:20]
+            project_slug = slugify(self.project.name)[:20]
 
             # Determine the folder path
             folder_path = os.path.join('media', f'projects/{startup_slug}/{project_slug}/')
@@ -162,7 +161,7 @@ class ProjectFiles(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, db_index=True, related_name='project_files')
     file_description = models.CharField(max_length=255, blank=False, db_index=True, verbose_name='file description')
     file = models.FileField(
-        upload_to=lambda instance, filename: ProjectFiles._generate_upload_path(instance.project, filename),
+        upload_to=_generate_upload_path,
         blank=True,
         null=True,
     )
