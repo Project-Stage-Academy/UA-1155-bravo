@@ -9,13 +9,16 @@ router.register('', views.ProjectViewSet)
 
 urlpatterns = [
     path('', include(router.urls)), 
-    path('files-of-project/<int:project>/', views.ProjectFilesViewSet.as_view({
+    path('<int:project>/files/', views.ProjectFilesViewSet.as_view({
         'get': 'list',
         'post': 'create',
         'delete': 'destroy',
     }), name='project_files_by_project'),
-    path('delete-file/<int:projectfiles_id>/of-project/<int:project>/',
-        views.delete_project_file, name='delete_project_file'),
+    path('<int:project>/file/<int:projectfiles_id>/',
+        views.project_file, name='project_file'),
+
+
+    
     path('shortlist-project/<int:project_id>/by-investor/<int:investor_id>/',
         views.shortlist_project, name='shortlist_project'),
     path('subscribe-for-project/<int:project_id>/by-investor/<int:investor_id>/for-share/<int:share>/',

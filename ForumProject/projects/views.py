@@ -143,20 +143,29 @@ class ProjectFilesViewSet(viewsets.ModelViewSet):
         return Response({"message": "All files deleted successfully"}, status=status.HTTP_200_OK)
 
 
-@api_view(['DELETE'])
-def delete_project_file(request, project, projectfiles_id):
+@api_view(['GET', 'DELETE'])
+def project_file(request, project, projectfiles_id):
     # Get the ProjectFiles instance to delete
     project_file = get_object_or_404(ProjectFiles, id=projectfiles_id, project_id=project)
     
-    # Delete the file from the server, if it exists
-    if project_file.file:
-        project_file.file.delete()
-    
-    # Delete the instance from the database
-    project_file.delete()
-    
-    # Return success response
-    return Response({"message": "File deleted successfully"}, status=status.HTTP_200_OK)
+    if request.method == 'GET':
+        # Return the file URL path
+        file_url = project_file.file.url if project_file.file else None
+        if file_url:
+            return Response({"file_url": file_url}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "File does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+    elif request.method == 'DELETE':
+        # Delete the file from the server, if it exists
+        if project_file.file:
+            project_file.file.delete()
+        
+        # Delete the instance from the database
+        project_file.delete()
+        
+        # Return success response
+        return Response({"message": "File deleted successfully"}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
