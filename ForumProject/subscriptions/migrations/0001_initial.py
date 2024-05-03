@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='SubInvestorStartup',
+            name='SubscribeInvestorStartup',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('saved_at', models.DateTimeField(auto_now_add=True)),
