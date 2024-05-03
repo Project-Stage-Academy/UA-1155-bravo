@@ -1,10 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status, generics
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
-from users.permissions import StartupPermission
+from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember
 from rest_framework.permissions import IsAuthenticated
+
 from .models import Startup
 from users.models import UserStartup
 from .serializers import StartupSerializer
@@ -28,10 +30,28 @@ class StartupViewSet(viewsets.ModelViewSet):
     
     queryset = Startup.objects.all().order_by('id')
     serializer_class = StartupSerializer
-    # permission_classes = [StartupPermission,]
+
+    def get_permissions(self):
+        """
+        Return the list of permission instances for the current action.
+
+        Depending on the action (e.g., 'retrieve', 'create', 'update', 'partial_update', 'destroy'),
+        different permission classes are applied to control access to the viewset.
+
+        Returns:
+            List[BasePermission]: List of permission instances.
+        """
+        if self.action == 'retrieve':
+            permission_classes = [IsInvestorRole | IsCompanyMember]
+        elif self.action == 'create':
+            permission_classes = [IsStartupRole]
+        elif self.action == 'update' or self.action == 'partial_update' or self.action == 'destroy':
+            permission_classes = [IsCompanyMember]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
 
-    
     def create(self, request, *args, **kwargs):
         """
          Handle create requests to create a startup for a user.
@@ -55,8 +75,6 @@ class StartupViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
     def destroy(self, request, *args, **kwargs):
         """
         The destroy method, which gives access to deletion only if all projects in the startup have the status - closed.
@@ -72,7 +90,6 @@ class StartupViewSet(viewsets.ModelViewSet):
         Raises:
             PermissionDenied: If the startup has ongoing projects, deletion is not allowed.
         """
-        
         instance = self.get_object()
         projects = Project.objects.filter(startup_id=instance.id)
         
@@ -122,6 +139,7 @@ class StartupList(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend]
     filterset_class = StartupFilter
     pagination_class = StandardResultsSetPagination
+    permission_classes = [IsInvestorRole]
     
     
     

@@ -119,6 +119,29 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+class UserRoleCompany(models.Model):
+    """
+    Model representing the role and associated company for a user.
+
+    Attributes:
+        user (CustomUser): The user associated with the role.
+        role (str): The role of the user, which can be 'startup', 'investor', or 'undefined'.
+        company_id (int, optional): The ID of the company associated with the user, if applicable.
+                                    Defaults to None.
+    """
+    class Role(models.TextChoices):
+        """
+        Enumeration defining the possible roles for a user.
+        """
+        STARTUP = 'startup', 'startup'
+        INVESTOR = 'investor', 'investor'
+        UNDEFINED = 'undefined', 'undefined'
+
+    user = models.OneToOneField(CustomUser, related_name='user_info', on_delete=models.CASCADE)
+    role = models.CharField(max_length=9, choices=Role.choices, default=Role.UNDEFINED)
+    company_id = models.IntegerField(null=True, blank=True)
+
+
 class UserInvestor(models.Model):
     """
     Represents the relationship between a user and an investor.
