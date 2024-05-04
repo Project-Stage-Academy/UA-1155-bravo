@@ -13,9 +13,11 @@ class SubscribeInvestorStartup(models.Model):
         saved_at (DateTimeField): The datetime when the investor saved the startup.
     """
 
-    investor = models.ForeignKey(Investor, on_delete=models.CASCADE)
-    startup = models.ForeignKey(Startup, on_delete=models.CASCADE)
+    investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, null=True)
+    startup = models.ForeignKey(Startup, on_delete=models.SET_NULL, null=True)
     saved_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        unique_together = [['investor', 'startup']]
 
     def __str__(self):
         """
