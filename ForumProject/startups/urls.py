@@ -1,8 +1,7 @@
 from django.urls import path, include
 from .views import StartupViewSet
 from rest_framework import routers
-from .views import StartupViewSet, StartupList, StartupListDetailfilter, NotificationPreferencesAPIView
-from .views import StartupViewSet, StartupList, StartupListDetailfilter, PersonalStartupList
+from .views import StartupViewSet, StartupList, StartupListDetailfilter, PersonalStartupList, NotificationPreferencesAPIView
 from rest_framework.routers import DefaultRouter
 
 
