@@ -29,6 +29,7 @@ urlpatterns = [
     path('startups/', include('startups.urls')),
     path('projects/', include('projects.urls')),
     path('communications/', include('communications.urls')),
+    path('subscriptions/', include('subscriptions.urls')),
     path('dashboard/', include('dashboard.urls')),
     
 ]
