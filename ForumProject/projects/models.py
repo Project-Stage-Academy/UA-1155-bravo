@@ -51,58 +51,6 @@ class Project(models.Model):
             name='unique_project_per_startup')
         ]
     
-    def save(self, *args, **kwargs):
-        """
-        Overriding save method to ensure a log is recorded when a Project is created or modified
-        """
-
-        # Determine if this is a new object or an existing one
-        is_new = self.pk is None
-
-        changes = []
-        update_fields = []
-        action = 'Created Project' if is_new else 'Update of Project'
-        previous_state = 'n/a' if is_new else ''
-        modified_state = f'New Project, id: {self.pk}, name: {self.name}' if is_new else ''
-
-        if not is_new:
-            try:
-                # Fetch the original instance from the database to compare with the current one
-                original = Project.objects.get(pk=self.pk)
-
-                # Compare attributes to identify changes
-                for field in self._meta.fields:
-                    field_name = field.name
-                    if getattr(original, field_name) != getattr(self, field_name):
-                        changes.append(
-                            (field_name, getattr(original, field_name), getattr(self, field_name))
-                        )
-                        update_fields.append(field_name)
-
-                if changes:
-                    # Prepare the previous and modified states
-                    previous_state = ', '.join([f'{field}: {old_value}' for field, old_value, _ in changes])
-                    modified_state = ', '.join([f'{field}: {new_value}' for field, _, new_value in changes])
-                    super().save(update_fields=update_fields, *args, **kwargs)
-
-            except ObjectDoesNotExist:
-                logger.error(f"Project with ID {self.pk} does not exist.")
-                raise ValidationError(f"Project with ID {self.pk} not found for updating.")
-        else:
-            super().save(*args, **kwargs)
-        
-        # Create a new ProjectLog
-        ProjectLog.objects.create(
-            project=self,
-            project_title=self.name,
-            change_date=datetime.now().date(),
-            change_time=datetime.now().time(),
-            user_id=1,  # This is a placeholder
-            action=action,
-            previous_state=previous_state[:ProjectLog._meta.get_field('previous_state').max_length],
-            modified_state=modified_state[:ProjectLog._meta.get_field('modified_state').max_length]
-            )
-    
     def __str__(self):
         """
         Return the name of the project.
@@ -218,10 +166,11 @@ class ProjectLog(models.Model):
         related_name='project_log', 
         db_index=True, 
         verbose_name="Project in DB")
-    project_title = models.CharField(max_length=Project._meta.get_field('name').max_length, verbose_name='Project title')
+    project_birth_id = models.IntegerField(verbose_name='id')
     change_date = models.DateField(auto_now_add=True, db_index=True)
     change_time = models.TimeField(auto_now_add=True)
     user_id = models.IntegerField(db_index=True)
+    startup_id = models.IntegerField(db_index=True)
     action = models.CharField(max_length=50, db_index=True)
     previous_state = models.CharField(max_length=255, verbose_name='Before changes')
     modified_state = models.CharField(max_length=255, verbose_name='After changes')

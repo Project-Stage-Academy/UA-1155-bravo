@@ -1,10 +1,14 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status, generics
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
-from users.permissions import StartupPermission
+from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember
+from rest_framework.permissions import IsAuthenticated
+
 from .models import Startup
+from users.models import UserStartup
 from .serializers import StartupSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import StartupFilter
@@ -20,9 +24,52 @@ class StartupViewSet(viewsets.ModelViewSet):
         serializer_class (Serializer): The serializer class for Startup objects.
     """
     
-    queryset = Startup.objects.all()
+    queryset = Startup.objects.all().order_by('id')
     serializer_class = StartupSerializer
-    permission_classes = [StartupPermission,]
+
+    def get_permissions(self):
+        """
+        Return the list of permission instances for the current action.
+
+        Depending on the action (e.g., 'retrieve', 'create', 'update', 'partial_update', 'destroy'),
+        different permission classes are applied to control access to the viewset.
+
+        Returns:
+            List[BasePermission]: List of permission instances.
+        """
+        if self.action == 'retrieve':
+            permission_classes = [IsInvestorRole | IsCompanyMember]
+        elif self.action == 'create':
+            permission_classes = [IsStartupRole]
+        elif self.action == 'update' or self.action == 'partial_update' or self.action == 'destroy':
+            permission_classes = [IsCompanyMember]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+
+    def create(self, request, *args, **kwargs):
+        """
+         Handle create requests to create a startup for a user.
+
+         Args:
+             request (Request): The HTTP request object.
+             *args: Additional positional arguments.
+             **kwargs: Additional keyword arguments.
+
+         Returns:
+             Response: Response object with serialized data and appropriate status code.
+
+        """
+        serializer = StartupSerializer(data=request.data)
+        if serializer.is_valid():  
+            startup = serializer.save()
+            user = request.user
+            UserStartup.objects.create(customuser=user, startup=startup, startup_role_id=1) 
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -39,7 +86,6 @@ class StartupViewSet(viewsets.ModelViewSet):
         Raises:
             PermissionDenied: If the startup has ongoing projects, deletion is not allowed.
         """
-        
         instance = self.get_object()
         projects = Project.objects.filter(startup_id=instance.id)
         
@@ -83,11 +129,13 @@ class StartupList(generics.ListAPIView):
         filter_backends (list): List of filter backends for the view.
         filterset_class (FilterSet): FilterSet class for startup filtering.
     """   
-    queryset = Startup.objects.all()
+    queryset = Startup.objects.all().order_by('id')
     serializer_class = StartupSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = StartupFilter
     pagination_class = StandardResultsSetPagination
+    permission_classes = [IsInvestorRole]
+    
     
     
 class StartupListDetailfilter(generics.ListAPIView):
@@ -107,4 +155,39 @@ class StartupListDetailfilter(generics.ListAPIView):
     serializer_class = StartupSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['^startup_name', '^startup_industry', '=startup_country']
+
+
+
+
+
+class PersonalStartupList(generics.ListAPIView):
+    """
+    A view to list startups created by the current user.
+
+    Inherits:
+        generics.ListAPIView: Base class for list views.
+
+    Attributes:
+        serializer_class (Serializer): Serializer class for startups.
+        permission_classes (list): List of permission classes required for the view.
+
+    Methods:
+        get_queryset(): Get the queryset of startups created by the current user.
+
+    """
+    serializer_class = StartupSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination  
+
+    def get_queryset(self):
+        """
+        Get the queryset of startups created by the current user.
+
+        Returns:
+            QuerySet: Queryset of startups created by the current user.
+
+        """
+        user_id = self.request.user.id
+        return Startup.objects.filter(userstartup__customuser=user_id)
+        
 

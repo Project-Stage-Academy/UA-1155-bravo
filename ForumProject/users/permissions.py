@@ -1,78 +1,173 @@
-from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import BasePermission
 
-from projects.models import InvestorProject
-from .models import UserStartup, UserInvestor
+from projects.models import Project
 
 
-class StartupPermission(BasePermission):
-    def has_permission(self, request, view):
-        if not request.user.is_authenticated:
-            return False
+class IsRoleSelected(BasePermission):
+    """
+    Permission class to check if the authenticated user has a specific role.
 
-        if view.action == 'list':
-            return UserInvestor.objects.filter(customuser=request.user.id).exists()
-        elif view.action == 'create':
-            return True
-        elif view.action == 'retrieve':
-            return True
-        elif view.action in ['update', 'partial_update', 'destroy']:
-            return True
-        else:
-            return False
-
-    def has_object_permission(self, request, view, obj):
-        if view.action == 'retrieve':
-            return (UserInvestor.objects.filter(customuser=request.user.id).exists() or
-                    UserStartup.objects.filter(Q(customuser=request.user.id) & Q(startup=obj.id)).exists())
-        elif view.action in ['update', 'partial_update', 'destroy']:
-            return UserStartup.objects.filter(Q(customuser=request.user.id) & Q(startup=obj.id)).exists()
-        else:
-            return False
-
-
-class InvestorPermission(BasePermission):
+    Attributes:
+        ROLE (str): The role to check for. Must be defined in subclasses.
+    """
+    ROLE = None
 
     def has_permission(self, request, view):
+        """
+        Check if the authenticated user has the specified role.
+
+        Args:
+            request: The request object.
+            view: The view object.
+
+        Returns:
+            bool: True if the user has the specified role, False otherwise.
+        """
         if not request.user.is_authenticated:
             return False
-
-        if view.action == 'list':
-            return False  # update due to followers(?)
-        elif view.action == 'create':
-            return True
-        elif view.action in ['retrieve', 'update', 'partial_update', 'destroy']:
-            return True
-        else:
+        
+        if not hasattr(request.user, 'user_info'):
             return False
-
-    def has_object_permission(self, request, view, obj):
-        # a retrieve permission will be updated after implementing follows for startups
-        if view.action in ['retrieve', 'update', 'partial_update', 'destroy']:
-            return UserInvestor.objects.filter(Q(customuser=request.user.id) & Q(investor=obj.id)).exists()
-        else:
-            return False
+        
+        return request.user.user_info.role == self.ROLE
 
 
-class ProjectPermission(BasePermission):
+class IsStartupRole(IsRoleSelected):
+    """
+    Permission class to check if the authenticated user has the role of a startup.
+    """
+    ROLE = 'startup'
+
+
+class IsInvestorRole(IsRoleSelected):
+    """
+    Permission class to check if the authenticated user has the role of an investor.
+    """
+    ROLE = 'investor'
+
+
+class IsCompanySelected(BasePermission):
+    """
+    Permission class to check if the authenticated user has selected a company.
+
+    Attributes:
+        ROLE (str): The role to check for. Must be defined in subclasses.
+    """
+    ROLE = None
+
     def has_permission(self, request, view):
+        """
+        Check if the authenticated user has selected a company of the specified role.
+
+        Args:
+            request: The request object.
+            view: The view object.
+
+        Returns:
+            bool: True if the user has selected a company of the specified role, False otherwise.
+        """
         if not request.user.is_authenticated:
             return False
-
-        if view.action == 'list':
-            return UserInvestor.objects.filter(customuser=request.user.id).exists()
-        elif view.action == 'create':  # need updates
-            return UserStartup.objects.filter(customuser=request.user.id).exists()
-        elif view.action in ['retrieve', 'update', 'partial_update', 'destroy']:
+        
+        if not hasattr(request.user, 'user_info'):
+            return False
+        
+        if request.user.user_info.company_id != 0 and request.user.user_info.role == self.ROLE:
             return True
-        else:
+        return False
+
+
+class IsStartupCompanySelected(IsCompanySelected):
+    """
+    Permission class to check if the authenticated user, with the role of a startup,
+    has selected a company.
+    """
+    ROLE = 'startup'
+
+
+class IsInvestorCompanySelected(IsCompanySelected):
+    """
+    Permission class to check if the authenticated user, with the role of an investor,
+    has selected a company.
+    """
+    ROLE = 'investor'
+
+
+class IsRole(BasePermission):
+    """
+    Permission class to check if the authenticated user has a valid role.
+
+    A valid role is either 'startup' or 'investor'.
+    """
+    def has_permission(self, request, view):
+        """
+        Check if the authenticated user has a valid role.
+
+        Args:
+            request: The request object.
+            view: The view object.
+
+        Returns:
+            bool: True if the user has a valid role, False otherwise.
+        """
+        if request.user.user_info.role not in ['startup', 'investor']:
+            return False
+        return True
+
+
+class IsCompanyMember(BasePermission):
+    """
+    Permission class to check if the authenticated user is a member of a specified company.
+
+    The user is considered a member if their company_id matches the company's primary key (pk).
+    """
+    def has_permission(self, request, view):
+        """
+        Check if the authenticated user is a member of the specified company.
+
+        Args:
+            request: The request object.
+            view: The view object.
+
+        Returns:
+            bool: True if the user is a member of the specified company, False otherwise.
+        """
+        company_id = view.kwargs.get('pk', None)
+        if company_id is None:
+            if request.user.user_info.role in ['investor', 'startup'] and request.user.user_info.company_id:
+                return True
+            else:
+                return False
+
+        try:
+            return request.user.user_info.company_id == view.kwargs['pk']
+        except AttributeError:
             return False
 
-    def has_object_permission(self, request, view, obj):
-        if view.action == 'retrieve':
-            return (InvestorProject.objects.filter(Q(investor=request.user.id) & Q(project=obj.id)).exists() or
-                    UserStartup.objects.filter(Q(customuser=request.user.id) & Q(startup=obj.startup.id)).exists())
-        elif view.action in ['update', 'partial_update', 'destroy']:
-            return UserStartup.objects.filter(Q(customuser=request.user.id) & Q(startup=obj.startup.id)).exists()
-        else:
+
+class IsProjectMember(BasePermission):
+    """
+    Permission class to check if the authenticated user is a member of
+    the startup associated with a project.
+
+    The user is considered a member if their company_id matches
+    the ID of the startup associated with the project.
+    """
+    def has_permission(self, request, view):
+        """
+        Check if the authenticated user is a member of the startup associated with the project.
+
+        Args:
+            request: The request object.
+            view: The view object.
+
+        Returns:
+            bool: True if the user is a member of the startup associated with the project,
+                  False otherwise.
+        """
+        try:
+            project = get_object_or_404(Project, pk=view.kwargs['pk'])
+            return request.user.user_info.company_id == project.startup.id
+        except AttributeError:
             return False

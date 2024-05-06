@@ -40,6 +40,9 @@ SS
             to=[user.email]
         )
         try:
+            print('start sending email')
             email.send()
+            print('Email has been sent')
         except Exception as e:
+            print('Email failed to be sent')
             logging.error(f"Failed to send email to {user.email}: {str(e)}")
