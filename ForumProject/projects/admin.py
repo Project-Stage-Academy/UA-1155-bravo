@@ -31,12 +31,12 @@ admin.site.register(InvestorProject, InvestorProjectAdmin)
 
 class ProjectLogAdmin(admin.ModelAdmin):
     list_display = [
-        'id',
         'project',
-        'project_title',
+        'project_birth_id',
         'change_date',
         'change_time',
         'user_id',
+        'startup_id',
         'action',
         'previous_state',
         'modified_state'
