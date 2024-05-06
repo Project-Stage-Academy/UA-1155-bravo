@@ -11,6 +11,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from startups.filters import StartupFilter
 from rest_framework import filters
 from django.http import Http404
+from rest_framework.permissions import IsAuthenticated
+from users.permissions import IsInvestorCompanySelected
 
 class CustomPagination(pagination.PageNumberPagination):
     """
@@ -30,6 +32,7 @@ class AddSubscription(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = StartupFilter
+    # permission_classes = [IsInvestorCompanySelected]
 
     
     def get_queryset(self):
@@ -89,6 +92,7 @@ class ListMySubscription(viewsets.ReadOnlyModelViewSet):
     View for listing user's subscriptions.
     """
     serializer_class = SubscribeInvestorStartupSerializer
+    # permission_classes = [IsInvestorCompanySelected]
 
     def get_queryset(self):
         """
@@ -133,6 +137,7 @@ class UniqueSubscription(viewsets.ModelViewSet):
     """
 
     serializer_class = SubscribeInvestorStartupSerializer
+    # permission_classes = [IsInvestorCompanySelected]
 
     def get_queryset(self):
         """

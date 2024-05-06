@@ -18,7 +18,7 @@ urlpatterns = [
     path('<int:pk>/', StartupViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='startup-detail'),
     path('my/', PersonalStartupList.as_view(), name='my-startup'),
     path('search/', StartupListDetailfilter.as_view(), name='startup-search'),
-    # path('subscribe/', AddSubscription.as_view({'get': 'list', 'post': 'create', }), name='startup-sub'),
+    path('subscribe/', AddSubscription.as_view({'get': 'list', 'post': 'create', }), name='startup-sub'),
 ]
 
 
