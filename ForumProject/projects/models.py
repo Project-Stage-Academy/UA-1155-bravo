@@ -29,7 +29,6 @@ class Project(models.Model):
     name = models.CharField(max_length=150, db_index=True)
     startup = models.ForeignKey(Startup, on_delete=models.CASCADE, related_name='projects')
     description = models.CharField(max_length=500, db_index=True)
-    # documentation = models.FileField(upload_to=_generate_upload_path, blank=True, null=True)
     PROJECT_STATUS_CHOICES = [
         ('open', 'Open'),
         ('closed', 'Closed'),
@@ -157,7 +156,22 @@ class InvestorProject(models.Model):
         
 class ProjectLog(models.Model):
     """
-    ADD DOCUMENTATION HERE
+    Model representing a log entry for project-related events.
+
+    The `ProjectLog` model is used to record significant events related to a Project, 
+    such as its creation, updates, or deletion. It captures information about the project 
+    at the time of the event, the user who initiated the change, and other contextual data.
+
+    Attributes:
+        project (ForeignKey): The related Project instance. It may be null if the project is deleted.
+        project_birth_id (int): The original ID of the project when it was first created.
+        change_date (DateField): The date when the change was logged.
+        change_time (TimeField): The time when the change was logged.
+        user_id (int): The ID of the user who performed the action.
+        startup_id (int): The ID of the startup associated with the project.
+        action (str): A description of the action performed (e.g., 'Created Project', 'Updated Project', 'Deleted Project').
+        previous_state (str): A textual representation of the state before the change.
+        modified_state (str): A textual representation of the state after the change.
     """
     project = models.ForeignKey(
         Project, 
