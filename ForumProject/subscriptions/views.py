@@ -1,4 +1,3 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, permissions, pagination
 from rest_framework.decorators import action
@@ -10,9 +9,11 @@ from startups.serializers import StartupSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from startups.filters import StartupFilter
 from rest_framework import filters
-from django.http import Http404
 from rest_framework.permissions import IsAuthenticated
 from users.permissions import IsInvestorCompanySelected
+from .filters import MySubscriptionFilter
+from rest_framework.pagination import PageNumberPagination
+
 
 class CustomPagination(pagination.PageNumberPagination):
     """
@@ -21,6 +22,7 @@ class CustomPagination(pagination.PageNumberPagination):
     page_size = 5
     page_size_query_param = 'page_size'
     max_page_size = 100
+    
 
 class AddSubscription(viewsets.ModelViewSet):
     """
@@ -87,11 +89,20 @@ class AddSubscription(viewsets.ModelViewSet):
         else:
             return Response({'error': 'User is not associated with an investor'}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class ListMySubscription(viewsets.ReadOnlyModelViewSet):
     """
     View for listing user's subscriptions.
+
+    Serializer class: SubscribeInvestorStartupSerializer
+    Filter backends: DjangoFilterBackend, SearchFilter
+    Filterset class: MySubscriptionFilter
+    Search fields: startup__startup_name, startup__startup_industry, startup__startup_country
     """
     serializer_class = SubscribeInvestorStartupSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_class = MySubscriptionFilter
+    search_fields = ['^startup__startup_name', '^startup__startup_industry', '=startup__startup_country']
     # permission_classes = [IsInvestorCompanySelected]
 
     def get_queryset(self):
@@ -105,19 +116,19 @@ class ListMySubscription(viewsets.ReadOnlyModelViewSet):
         try:
             user_investor = UserInvestor.objects.get(customuser=user)
             investor_id = user_investor.investor_id
-            return SubscribeInvestorStartup.objects.filter(investor_id=investor_id)
+            queryset = SubscribeInvestorStartup.objects.filter(investor_id=investor_id)
+            return queryset
         except UserInvestor.DoesNotExist:
             return SubscribeInvestorStartup.objects.none()
 
-    
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         """
         List user's subscriptions with startup details.
 
         Returns:
             Response: List of subscriptions with startup details.
         """
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         response_data = []
         for subscription in serializer.data:
@@ -174,15 +185,15 @@ class UniqueSubscription(viewsets.ModelViewSet):
         
     
 
-    def delete(self, request, pk, format=None):
-        """
-        Delete a subscription by its ID.
+def delete(self, request, pk, format=None):
+    """
+    Delete a subscription by its ID.
 
-        Returns:
-            Response: Success message if subscription is deleted.
-        """
-        subscription = self.get_object()
-        subscription.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    Returns:
+        Response: Success message if subscription is deleted.
+    """
+    subscription = self.get_object()
+    subscription.delete()
+    return Response({'message': 'Unsubscribed successfully.'}, status=status.HTTP_204_NO_CONTENT)
   
   
