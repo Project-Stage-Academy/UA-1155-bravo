@@ -2,37 +2,53 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .models import Notification
 from projects.models import InvestorProject
+from django.core.exceptions import ValidationError
 
-def create_notification(instance, follow_status_change=True):
-    '''
-    Helper function.
-    Create a new `Notification` record based on the `InvestorProject` instance.
+def create_notifications(instances, follow_status_change=True):
+    """
+    Creates Notification records for the provided InvestorProject instances.
 
-    This function creates a `Notification` record that represents a change in the 
-    relationship between an investor and a project. The trigger for the notification 
-    depends on whether it's a change in the following status or subscription share.
+    This function creates Notification records either for a single InvestorProject instance
+    or for multiple instances in bulk.
 
     Parameters:
-    - instance (InvestorProject): The `InvestorProject` instance that triggered the notification.
-    - follow_status_change (bool): Whether the trigger is a change in the following status. 
-      Default is True. If False, the trigger is considered a change in the subscription share.
-    
+    - instances: A single InvestorProject instance or a list of them.
+    - follow_status_change (bool): Whether the trigger is a change in the following status.
+      If False, the trigger is considered a change in the subscription share.
+
     Returns:
-    - Notification: The created `Notification` instance.
-    '''
-    Notification.objects.create(
-            project=instance.project,
-            startup=instance.project.startup,
-            investor=instance.investor,
-            trigger='follower(s) list changed' if follow_status_change else 'subscription changed',
-            initiator='investor',
+    - List of created Notification instances.
+    """
+    if not isinstance(instances, list):
+        instances = [instances]
+
+    notifications = []
+    for instance in instances:
+        # Validate fields
+        if not instance.project or not instance.project.startup or not instance.investor:
+            raise ValidationError("Invalid InvestorProject instance. Ensure project, startup, and investor are valid.")
+
+        # Add to the list of notifications to be created
+        notifications.append(
+            Notification(
+                project=instance.project,
+                startup=instance.project.startup,
+                investor=instance.investor,
+                trigger='follower(s) list changed' if follow_status_change else 'subscription changed',
+                initiator='investor',
+            )
         )
+
+    # Bulk create all notifications
+    if notifications:
+        return Notification.objects.bulk_create(notifications)
+    return []
 
 # Signal to create a notification when an investor starts following a project or changes a share
 @receiver(post_save, sender=InvestorProject)
 def investor_project_followed_or_subscription_changed(sender, instance, created, **kwargs):
-    '''
-    Signal handler that creates a notification when an `InvestorProject` record is created or updated.
+    """
+    Signal handler to create notifications when an InvestorProject is created or updated.
 
     This signal is triggered when an investor starts following a project or changes their 
     subscription share in a project. It creates a `Notification` record indicating whether 
@@ -43,19 +59,18 @@ def investor_project_followed_or_subscription_changed(sender, instance, created,
     - instance (InvestorProject): The instance that triggered the signal.
     - created (bool): Whether the `InvestorProject` instance was just created.
     - kwargs (dict): Additional arguments for the signal handler.
-    '''
-
+    """
     if created:
         # Investor just started following a project (share is initialized to 0 or another value)
-        create_notification(instance)
+        create_notifications(instance)
     else:
         # Investor changed the share (subscription)
-        create_notification(instance, follow_status_change=False)
+        create_notifications(instance, follow_status_change=False)
 
 # Signal to create a notification when an investor delists a project
 @receiver(post_delete, sender=InvestorProject)
 def investor_project_delisted(sender, instance, **kwargs):
-    '''
+    """
     Signal handler that creates a notification when an `InvestorProject` record is deleted.
 
     This signal is triggered when an investor delists a project, indicating that they 
@@ -66,5 +81,5 @@ def investor_project_delisted(sender, instance, **kwargs):
     - sender (type): The model class that sent the signal (usually `InvestorProject`).
     - instance (InvestorProject): The instance that triggered the signal.
     - kwargs (dict): Additional arguments for the signal handler.
-    '''
-    create_notification(instance)
+    """
+    create_notifications(instance)
