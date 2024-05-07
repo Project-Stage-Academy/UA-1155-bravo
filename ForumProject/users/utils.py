@@ -43,3 +43,27 @@ SS
             email.send()
         except Exception as e:
             logging.error(f"Failed to send email to {user.email}: {str(e)}")
+
+    @staticmethod
+    def send_email_notification(user, event_type, message):
+        prefs = user.notification_preferences
+        send_email = False
+
+        if event_type == 'new_follow' and prefs.new_follows:
+            send_email = True
+        elif event_type == 'new_message' and prefs.new_messages:
+            send_email = True
+        elif event_type == 'project_update' and prefs.project_updates:
+            send_email = True
+
+        if send_email:
+            email = EmailMessage(
+                subject=message['subject'],
+                body='Hi! ' + user.first_name + event_type,
+                from_email=settings.EMAIL_HOST_USER,
+                to=[user.email]
+            )
+            try:
+                email.send()
+            except Exception as e:
+                logging.error(f"Failed to send email to {user.email}: {str(e)}")

@@ -2,6 +2,8 @@ from django.db import models
 from projects.models import Project
 from investors.models import Investor
 from startups.models import Startup
+from django.core.mail import EmailMessage
+
 
 class Notification(models.Model):
     # Choices for the trigger field
@@ -51,3 +53,6 @@ class NotificationPreference(models.Model):
     new_follows = models.BooleanField(default=True)
     new_messages = models.BooleanField(default=True)
     project_updates = models.BooleanField(default=True)
+
+
+
