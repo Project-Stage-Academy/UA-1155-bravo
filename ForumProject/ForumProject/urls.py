@@ -30,5 +30,4 @@ urlpatterns = [
     path('projects/', include('projects.urls')),
     path('communications/', include('communications.urls')),
     path('dashboard/', include('dashboard.urls')),
-    
 ]
