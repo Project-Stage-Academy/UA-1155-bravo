@@ -1,12 +1,3 @@
-# from django.urls import path
-# from . import views
-
-# app_name = 'subscriptions'
-
-# urlpatterns = [
-#     path('add/', views.SubscriptionsViewSet.as_view(), name='add-subscriptions'),
-#     path('my/', views.SubscriptionsViewSet.as_view(), name='my-subscriptions'),
-# ]
 
 from django.urls import path
 from . import views
