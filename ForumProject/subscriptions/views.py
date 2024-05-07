@@ -10,7 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from startups.filters import StartupFilter
 from rest_framework import filters
 from rest_framework.permissions import IsAuthenticated
-from users.permissions import IsInvestorCompanySelected
+from users.permissions import IsInvestorCompanySelected, IsInvestorRole
 from .filters import MySubscriptionFilter
 from rest_framework.pagination import PageNumberPagination
 from django.core.paginator import EmptyPage
@@ -54,7 +54,7 @@ class AddSubscription(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = StartupFilter
-    # permission_classes = [IsInvestorCompanySelected]
+    permission_classes = [IsInvestorRole, IsInvestorCompanySelected]
 
     
     def get_queryset(self):
@@ -167,7 +167,7 @@ class SubscriptionViewsets(viewsets.ModelViewSet, SubscriptionMixin):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = MySubscriptionFilter
     search_fields = ['^startup__startup_name', '^startup__startup_industry', '=startup__startup_country']
-    # permission_classes = [IsInvestorCompanySelected]
+    permission_classes = [IsInvestorRole, IsInvestorCompanySelected]
 
     def get_queryset(self):
         """
