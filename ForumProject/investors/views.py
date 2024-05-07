@@ -1,15 +1,11 @@
-from rest_framework.response import Response
-from rest_framework import viewsets, status
-from users.models import UserInvestor
-from .serializers import InvestorSerializer
-from .models import Investor
-from django.db.migrations import serializer
+from django.shortcuts import get_object_or_404
+from users.permissions import IsInvestorCompanySelected, IsInvestorRole, IsCompanyMember
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from investors.models import Investor
 from investors.serializers import InvestorSerializer
 from users.models import UserInvestor
-from users.permissions import InvestorPermission
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 
 class InvestorViewSet(viewsets.ModelViewSet):
@@ -26,8 +22,28 @@ class InvestorViewSet(viewsets.ModelViewSet):
     """
     queryset = Investor.objects.all()
     serializer_class = InvestorSerializer
-    # permission_classes = [InvestorPermission, ]
-  
+
+    def get_permissions(self):
+        """
+        Return the list of permission instances for the current action.
+
+        Depending on the action (e.g., 'retrieve', 'create', 'update', 'partial_update', 'destroy'),
+        different permission classes are applied to control access to the viewset.
+
+        Returns:
+            List[BasePermission]: List of permission instances.
+        """
+        if self.action == 'list':
+            permission_classes = [IsAdminUser]
+        elif self.action == 'retrieve':
+            permission_classes = [IsCompanyMember]
+        elif self.action == 'create':
+            permission_classes = [IsInvestorRole]
+        elif self.action == 'update' or self.action == 'partial_update' or self.action == 'destroy':
+            permission_classes = [IsCompanyMember]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
     
     def create(self, request, *args, **kwargs):
         """
@@ -48,4 +64,3 @@ class InvestorViewSet(viewsets.ModelViewSet):
             UserInvestor.objects.create(customuser=request.user, investor=investor, investor_role_id=1)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
