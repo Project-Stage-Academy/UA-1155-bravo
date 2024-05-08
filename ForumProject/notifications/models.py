@@ -17,12 +17,12 @@ class Notification(models.Model):
         ('investor', 'investor'),
         ('project', 'project'),
     ]    
-    # ForeignKey to Project model with null=True and blank=True parameters
-    project = models.ForeignKey(Project, on_delete=models.SET_NULL, related_name='notice_on_project', null=True, blank=True)
-    # CharField for startup name
-    startup_name = models.CharField(max_length=Startup._meta.get_field('startup_name').max_length)
-    # ForeignKey to Investor model with null=True and blank=True parameters
-    investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, related_name='notice_to_investor', null=True, blank=True)
+    # ForeignKey to Project model
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL, related_name='notice_project', null=True)
+    # ForeignKey to Startup model
+    startup = models.ForeignKey(Startup, on_delete=models.SET_NULL, related_name='notice_startup', null=True)
+    # ForeignKey to Investor model
+    investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, related_name='notice_investor', null=True)
     # CharField for trigger choice
     trigger = models.CharField(max_length=50, choices=TRIGGER_CHOICES)
     # CharField for initiator choice
@@ -34,12 +34,11 @@ class Notification(models.Model):
         # Define addressee based on initiator choice
         addressee = 'Unknown'
         if self.initiator == 'investor':
-            if self.investor:
-                addressee = f'Investor {self.investor.investor_name}'
-        elif self.project:
-            addressee = f'Startup {self.startup_name}'
+            addressee = f'Startup {self.project.startup.startup_name}'
+        else:
+            addressee = f'Investor {self.investor.investor_name}'
         # Return notification string
-        return f'Notification of {self.date_time} to {addressee} on Project {self.project.name if self.project else "N/A"}'
+        return f'Notification of {self.date_time} to {addressee} on Project {self.project.name}'
 
     class Meta:
         # Add model-level constraint
