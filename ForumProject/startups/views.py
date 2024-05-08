@@ -6,6 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 from projects.models import Project
 from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember
 from rest_framework.permissions import IsAuthenticated
+from django.core.exceptions import ValidationError
 
 from .models import Startup
 from users.models import UserStartup
@@ -196,6 +197,13 @@ class PersonalStartupList(generics.ListAPIView):
         return Startup.objects.filter(userstartup__customuser=user_id)
 
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import Startup
+
+
 class NotificationPreferencesAPIView(APIView):
     """
     A view to update the notification preferences of the authenticated user's associated startup.
@@ -226,16 +234,33 @@ class NotificationPreferencesAPIView(APIView):
         """
         user = request.user
 
-        email_notifications = request.data.get('email_notifications', False)
-        in_app_notifications = request.data.get('in_app_notifications', False)
+        prefs = request.data.get('startup_prefs', '')
+
+        email_notifications = 'email' in prefs.split(",")
+        in_app_notifications = 'in_app' in prefs.split(",")
 
         try:
             startup = Startup.objects.get(customuser=user)
-            startup.email_notifications = email_notifications
-            startup.in_app_notifications = in_app_notifications
+
+            prefs = startup.get_startup_prefs()
+
+            if email_notifications:
+                prefs.append('email')
+            else:
+                prefs.remove('email') if 'email' in prefs else None
+
+            if in_app_notifications:
+                prefs.append('in_app')
+            else:
+                prefs.remove('in_app') if 'in_app' in prefs else None
+
+            startup.set_startup_prefs(prefs)
             startup.save()
+
             return Response({'message': 'Notification preferences updated successfully.'}, status=status.HTTP_200_OK)
         except Startup.DoesNotExist:
             return Response({'error': 'Startup not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except ValidationError as e:
+            return Response({'error': 'Invalid input: {}'.format(e.message)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
