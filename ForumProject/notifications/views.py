@@ -1,25 +1,28 @@
-from django.shortcuts import render
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from .models import Startup
+from rest_framework import generics
+from users.permissions import IsInvestorRole
+from notifications.models import Notification
+from notifications.serializers import NotificationSerializer
 
+class NotificationListView(generics.ListAPIView):
+    """
+    View for listing notifications of the authenticated user.
 
-class NotificationPreferencesAPIView(APIView):
-    def post(self, request):
-        user = request.user  # Assuming user authentication is implemented
-        # Assuming request data is in JSON format with keys 'email_notifications' and 'in_app_notifications'
-        email_notifications = request.data.get('email_notifications', False)
-        in_app_notifications = request.data.get('in_app_notifications', False)
+    Serializer class: NotificationSerializer
+    Permission classes: IsInvestorRole
+    """
 
-        try:
-            startup = Startup.objects.get(user=user)  # Assuming Startup model has a ForeignKey to User model
-            startup.email_notifications = email_notifications
-            startup.in_app_notifications = in_app_notifications
-            startup.save()
-            return Response({'message': 'Notification preferences updated successfully.'}, status=status.HTTP_200_OK)
-        except Startup.DoesNotExist:
-            return Response({'error': 'Startup not found.'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    serializer_class = NotificationSerializer
+    permission_classes = [IsInvestorRole]
 
+    def get_queryset(self):
+        """
+        Get the queryset of notifications for the authenticated user.
+
+        Returns:
+            Queryset: Notifications filtered by the ID of the current authenticated user.
+        """
+        # Get the ID of the current authenticated user
+        user_id = self.request.user.id
+        
+        # Filter notifications by the ID of the investor matching the ID of the current user
+        return Notification.objects.filter(investor__userinvestor__customuser_id=user_id)
