@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import NotificationPreference
+from .models import Notification
 
-class NotificationPreferenceSerializer(serializers.ModelSerializer):
+class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NotificationPreference
-        fields = ['new_follows', 'new_messages', 'project_updates']
+        model = Notification
+        fields = ['project', 'startup_name', 'investor', 'trigger', 'initiator', 'datetime']

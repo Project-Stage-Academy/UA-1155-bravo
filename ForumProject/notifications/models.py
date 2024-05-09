@@ -49,10 +49,7 @@ class Notification(models.Model):
             models.CheckConstraint(check=models.Q(project__isnull=False) | models.Q(investor__isnull=False), name='project_or_investor_required'),
         ]
 
-class NotificationPreference(models.Model):
-    new_follows = models.BooleanField(default=True)
-    new_messages = models.BooleanField(default=True)
-    project_updates = models.BooleanField(default=True)
+
 
 
 
