@@ -10,12 +10,15 @@ class Notification(models.Model):
         ('subscription changed', 'subscription changed'),
         ('project status changed', 'project status changed'),
         ('project budget changed', 'project budget changed'),
+        ('startup profile updated', 'startup profile updated'),
         ('message sent', 'message sent'),
     ]
     # Choices for the initiator field
     INITIATOR_CHOICES = [
         ('investor', 'investor'),
         ('project', 'project'),
+        ('startup', 'startup'),
+        
     ]    
     # ForeignKey to Project model
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, related_name='notice_project', null=True)
@@ -31,14 +34,21 @@ class Notification(models.Model):
     date_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        # Define addressee based on initiator choice
         addressee = 'Unknown'
+        project_name = self.project.name if self.project else None
+        startup_name = self.startup.startup_name if self.startup else None
+        investor_name = self.investor.investor_name if self.investor else None
+
         if self.initiator == 'investor':
-            addressee = f'Startup {self.project.startup.startup_name}'
-        else:
-            addressee = f'Investor {self.investor.investor_name}'
-        # Return notification string
-        return f'Notification of {self.date_time} to {addressee} on Project {self.project.name}'
+            addressee = f'Startup {startup_name}' if startup_name else 'Unknown'
+        elif self.initiator == 'project':
+            addressee = f'Investor {investor_name}' if investor_name else 'Unknown'
+        elif self.initiator == 'startup':
+            addressee = f'Investor {investor_name}' if investor_name else 'Unknown'
+
+        return f'Notification of {self.date_time} to {addressee} on Project {project_name}'
+
+
 
     class Meta:
         # Add model-level constraint
