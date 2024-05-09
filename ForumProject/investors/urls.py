@@ -2,6 +2,7 @@ from django.urls import path, include
 from .views import InvestorViewSet
 from . import views
 from rest_framework import routers
+from notifications.views import NotificationListView
 
 app_name = 'investors'
 
@@ -10,5 +11,6 @@ urlpatterns = [
     path('add/', InvestorViewSet.as_view({'post': 'create'}), name='investor-add'),
     path('<int:pk>/', InvestorViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}),
          name='investor-detail'),
+    path('notifications/', NotificationListView.as_view(), name='investor-notify'),
 ]
 

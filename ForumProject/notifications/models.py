@@ -10,12 +10,15 @@ class Notification(models.Model):
         ('subscription changed', 'subscription changed'),
         ('project status changed', 'project status changed'),
         ('project budget changed', 'project budget changed'),
+        ('startup profile updated', 'startup profile updated'),
         ('message sent', 'message sent'),
     ]
     # Choices for the initiator field
     INITIATOR_CHOICES = [
         ('investor', 'investor'),
         ('project', 'project'),
+        ('startup', 'startup'),
+        
     ]    
     # ForeignKey to Project model
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, related_name='notice_project', null=True)
