@@ -21,14 +21,14 @@ from django.shortcuts import render
 def home(request):
     return render(request, 'home.html')
 
+
 urlpatterns = [
+    path('chat/', include('communications.urls', namespace='communications')),
     path('admin/', admin.site.urls),
     path('', home, name='home'),
     path('users/', include('users.urls')),
     path('investors/', include('investors.urls')),
     path('startups/', include('startups.urls')),
     path('projects/', include('projects.urls')),
-    path('communications/', include('communications.urls')),
     path('dashboard/', include('dashboard.urls')),
-    
 ]

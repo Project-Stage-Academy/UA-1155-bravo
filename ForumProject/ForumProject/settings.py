@@ -35,6 +35,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'daphne',
+    'communications.apps.CommunicationsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -46,7 +47,6 @@ INSTALLED_APPS = [
     'notifications',
     'startups',
     'projects',
-    'communications',
     'dashboard',
     'subscriptions',
     'rest_framework',
