@@ -24,9 +24,13 @@ class IsRoleSelected(BasePermission):
         Returns:
             bool: True if the user has the specified role, False otherwise.
         """
-        if request.user.user_info.role != self.ROLE:
+        if not request.user.is_authenticated:
             return False
-        return True
+        
+        if not hasattr(request.user, 'user_info'):
+            return False
+        
+        return request.user.user_info.role == self.ROLE
 
 
 class IsStartupRole(IsRoleSelected):
@@ -63,6 +67,12 @@ class IsCompanySelected(BasePermission):
         Returns:
             bool: True if the user has selected a company of the specified role, False otherwise.
         """
+        if not request.user.is_authenticated:
+            return False
+        
+        if not hasattr(request.user, 'user_info'):
+            return False
+        
         if request.user.user_info.company_id != 0 and request.user.user_info.role == self.ROLE:
             return True
         return False
