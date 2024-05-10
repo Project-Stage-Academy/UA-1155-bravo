@@ -3,7 +3,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.decorators import api_view, permission_classes
-from .models import InvestorProject
+from .models import Project, InvestorProject
 from .serializers import InvestorProjectSerializer
 
 from users.permissions import (IsInvestorRole, IsInvestorCompanySelected, IsStartupCompanySelected)
@@ -34,6 +34,11 @@ def follow(request, project_id):
     
     investor_id = request.user.user_info.company_id
 
+    # Check if a Project with given project_id exists
+    if not Project.objects.filter(pk=project_id):
+        return Response({"error": "Project does not exist"},
+                        status=status.HTTP_400_BAD_REQUEST)
+    
     # Check if an InvestorProject with the given project_id and investor_id already exists
     if InvestorProject.objects.filter(project_id=project_id, investor_id=investor_id).exists():
         return Response({"error": "Project is already followed by this investor"},

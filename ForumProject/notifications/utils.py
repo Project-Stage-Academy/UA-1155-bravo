@@ -22,4 +22,4 @@ def send_notification_email(subject, message, recipient_list):
             fail_silently=False
         )
     except Exception as e:
-        logger.error(f"Failed to send email to {len(recipient_list)} recipients: {str(e)}")
+        logger.error(f"Failed to send email: {str(e)}; Subject: {subject}; Recipients: {recipient_list}")
