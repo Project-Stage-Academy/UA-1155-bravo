@@ -11,14 +11,10 @@ from django.core.exceptions import ValidationError
 from .models import Startup
 from users.models import UserStartup
 from .serializers import StartupSerializer
-from rest_framework.views import APIView
-from users.models import UserStartup
-from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import StartupFilter
 from rest_framework import filters
 from rest_framework.pagination import PageNumberPagination
-
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -95,13 +91,12 @@ class StartupViewSet(viewsets.ModelViewSet):
         projects = Project.objects.filter(startup_id=instance.id)
         
         # Checking whether the startup has open projects
-        if any(project.project_status != 'closed' for project in projects):
+        if any(project.status != 'closed' for project in projects):
             raise PermissionDenied("Cannot delete startup with ongoing projects.")
         
         # If the startup has all projects closed, then deletion is possible
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -240,7 +235,7 @@ class NotificationPreferencesAPIView(APIView):
         in_app_notifications = 'in_app' in prefs.split(",")
 
         try:
-            startup = Startup.objects.get(customuser=user)
+            startup = Startup.objects.get(customuser=user) #change here for company_id
 
             prefs = startup.get_startup_prefs()
 
