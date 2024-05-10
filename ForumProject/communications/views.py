@@ -7,9 +7,10 @@ User = get_user_model()
 
 
 def index_view(request):
-    users = User.objects.all()
+    users = User.objects.exclude(id=request.user.id)
+    rooms_list = Room.objects.filter(name__contains=str(request.user.id))
     return render(request, 'index.html', {
-        'rooms': Room.objects.all(), 'users': users
+        'rooms': rooms_list, 'users': users
     })
 
 
