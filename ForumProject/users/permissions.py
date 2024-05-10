@@ -1,7 +1,9 @@
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import BasePermission
-
+from .models import UserStartup
 from projects.models import Project
+from rest_framework import status
+from rest_framework.response import Response
 
 
 class IsRoleSelected(BasePermission):
@@ -34,6 +36,25 @@ class IsStartupRole(IsRoleSelected):
     Permission class to check if the authenticated user has the role of a startup.
     """
     ROLE = 'startup'
+    
+    def has_permission(self, request, view):
+            """
+            Check if the user is logged in and has the role of an investor.
+
+            Args:
+                request: The request object.
+                view: The view object.
+
+            Returns:
+                bool: True if the user is logged in and has the role of an investor, False otherwise.
+            """
+            try:
+                if request.user.is_authenticated and hasattr(request.user, 'user_info') and request.user.user_info.role == 'startup':
+                    return True
+                else:
+                    return False
+            except AttributeError:
+                return Response({"error": "Please log in to access this resource."}, status=status.HTTP_403_FORBIDDEN)
 
 
 class IsInvestorRole(IsRoleSelected):
@@ -41,6 +62,25 @@ class IsInvestorRole(IsRoleSelected):
     Permission class to check if the authenticated user has the role of an investor.
     """
     ROLE = 'investor'
+
+    def has_permission(self, request, view):
+            """
+            Check if the user is logged in and has the role of an investor.
+
+            Args:
+                request: The request object.
+                view: The view object.
+
+            Returns:
+                bool: True if the user is logged in and has the role of an investor, False otherwise.
+            """
+            try:
+                if request.user.is_authenticated and hasattr(request.user, 'user_info') and request.user.user_info.role == 'investor':
+                    return True
+                else:
+                    return False
+            except AttributeError:
+                return Response({"error": "Please log in to access this resource."}, status=status.HTTP_403_FORBIDDEN)
 
 
 class IsCompanySelected(BasePermission):
@@ -154,3 +194,30 @@ class IsProjectMember(BasePermission):
             return request.user.user_info.company_id == project.startup.id
         except AttributeError:
             return False
+
+
+class IsStartupMember(BasePermission):
+    """
+    Permission class to check if the authenticated user is a member of a startup.
+    """
+    ROLE = 'startup'
+
+    def has_permission(self, request, view):
+        """
+        Check if the authenticated user is a member of a startup.
+
+        Args:
+            request: The request object.
+            view: The view object.
+
+        Returns:
+            bool: True if the user is a member of a startup, False otherwise.
+        """     
+        # Перевірка, чи користувач аутентифікований
+        if not request.user.is_authenticated:
+            return False
+
+        # Перевірка, чи існує запис UserStartup, що відповідає користувачеві та стартапу
+        user_startup = UserStartup.objects.filter(customuser=request.user, startup=view.get_object()).exists()
+        
+        return user_startup

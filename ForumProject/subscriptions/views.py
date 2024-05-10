@@ -222,14 +222,14 @@ class SubscriptionViewsets(viewsets.ModelViewSet, SubscriptionMixin):
         queryset = self.filter_queryset(self.get_queryset())
         if queryset.count() == 0:
             return Response({'error': 'No startups found with the given filters.'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = self.get_serializer(queryset, many=True)
         response_data = []
-        for subscription in serializer.data:
-            startup_id = subscription['startup']
-            startup = Startup.objects.get(id=startup_id)
-            startup_serializer = StartupSerializer(startup)
-            subscription['startup'] = startup_serializer.data
-            response_data.append(subscription)
+        for subscription in queryset:
+            if subscription.startup_id is not None:
+                startup = subscription.startup
+                startup_serializer = StartupSerializer(startup)
+                subscription_data = self.get_serializer(subscription).data
+                subscription_data['startup'] = startup_serializer.data
+                response_data.append(subscription_data)
         return Response(response_data)
 
     def delete(self, request, pk=None, format=None):
