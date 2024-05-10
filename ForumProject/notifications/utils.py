@@ -1,25 +1,21 @@
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import EmailMessage
 import logging
 
 logger = logging.getLogger(__name__)
 
-def send_notification_email(subject, message, recipient_list):
+def send_email_async(subject, message, recipients):
     """
-    Send a notification email to a list of recipients.
-    
-    Parameters:
+    Sends email notifications asynchronously.
+
+    Args:
     - subject (str): The subject of the email.
-    - message (str): The body content of the email.
-    - recipient_list (list): List of email addresses to send to.
+    - message (str): The body of the email.
+    - recipients (list[str]): List of email addresses to send to.
     """
     try:
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            recipient_list,
-            fail_silently=False
-        )
+        email = EmailMessage(subject, message, settings.EMAIL_HOST_USER, recipients)
+        email.send()
     except Exception as e:
-        logger.error(f"Failed to send email: {str(e)}; Subject: {subject}; Recipients: {recipient_list}")
+        logger.error(f"Failed to send email: {str(e)}; Subject: {subject}; Recipients: {recipients}")

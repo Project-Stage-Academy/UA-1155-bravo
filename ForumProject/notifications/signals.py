@@ -6,11 +6,10 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 
 from users.models import UserStartup
-from .utils import send_notification_email
+from .utils import send_email_async
 
 from django.db import DatabaseError
 from django.conf import settings
-from django.core.mail import EmailMessage
 import logging
 import threading
 
@@ -57,22 +56,6 @@ def create_notifications(instances, follow_status_change=True):
         logger.error(f"Database error while creating notifications: {str(db_err)}")
 
     return notifications
-
-def send_email_async(subject, message, recipients):
-    """
-    Sends email notifications asynchronously.
-
-    Args:
-    - subject (str): The subject of the email.
-    - message (str): The body of the email.
-    - recipients (list[str]): List of email addresses to send to.
-    """
-    try:
-        email = EmailMessage(subject, message, settings.EMAIL_HOST_USER, recipients)
-        email.send()
-    except Exception as e:
-        logger.error(f"Failed to send email: {str(e)}; Subject: {subject}; Recipients: {recipients}")
-
 
 def record_and_email_notifications(instance, follow_status_change=True):
     """
