@@ -4,6 +4,7 @@ from .models import UserStartup
 from projects.models import Project
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 
 class IsRoleSelected(BasePermission):
@@ -38,23 +39,22 @@ class IsStartupRole(IsRoleSelected):
     ROLE = 'startup'
     
     def has_permission(self, request, view):
-            """
-            Check if the user is logged in and has the role of an investor.
+        """
+        Check if the user is logged in and has the role of a startup.
 
-            Args:
-                request: The request object.
-                view: The view object.
+        Args:
+            request: The request object.
+            view: The view object.
 
-            Returns:
-                bool: True if the user is logged in and has the role of an investor, False otherwise.
-            """
-            try:
-                if request.user.is_authenticated and hasattr(request.user, 'user_info') and request.user.user_info.role == 'startup':
-                    return True
-                else:
-                    return False
-            except AttributeError:
-                return Response({"error": "Please log in to access this resource."}, status=status.HTTP_403_FORBIDDEN)
+        Returns:
+            bool: True if the user is logged in and has the role of a startup, False otherwise.
+                
+        Raises:
+            PermissionDenied: If the user is not logged in or does not have the role of a startup.
+        """
+        if not request.user.is_authenticated or not hasattr(request.user, 'user_info'):
+            raise PermissionDenied({"error": "Please log in to access this resource."})
+        return request.user.user_info.role == 'startup'
 
 
 class IsInvestorRole(IsRoleSelected):
@@ -64,24 +64,26 @@ class IsInvestorRole(IsRoleSelected):
     ROLE = 'investor'
 
     def has_permission(self, request, view):
-            """
-            Check if the user is logged in and has the role of an investor.
+        """
+        Check if the user is logged in and has the role of an investor.
 
-            Args:
-                request: The request object.
-                view: The view object.
+        Args:
+            request: The request object.
+            view: The view object.
 
-            Returns:
-                bool: True if the user is logged in and has the role of an investor, False otherwise.
-            """
-            try:
-                if request.user.is_authenticated and hasattr(request.user, 'user_info') and request.user.user_info.role == 'investor':
-                    return True
-                else:
-                    return False
-            except AttributeError:
-                return Response({"error": "Please log in to access this resource."}, status=status.HTTP_403_FORBIDDEN)
+        Returns:
+            bool: True if the user is logged in and has the role of an investor, False otherwise.
 
+        Raises:
+            PermissionDenied: If the user is not logged in or does not have the role of an investor.
+        """
+        if not request.user.is_authenticated:
+            raise PermissionDenied({"error": "Please log in to access this resource."})
+
+        if hasattr(request.user, 'user_info') and request.user.user_info.role == 'investor':
+            return True
+        else:
+            return False
 
 class IsCompanySelected(BasePermission):
     """

@@ -2,11 +2,10 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status, generics
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
 from projects.models import Project
 from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember, IsStartupMember
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import NotFound
 from .models import Startup
 from users.models import UserStartup
 from .serializers import StartupSerializer
@@ -64,7 +63,7 @@ class StartupViewSet(viewsets.ModelViewSet):
         try:
             obj = queryset.get(pk=pk)
         except Startup.DoesNotExist:
-            raise NotFound("No Startup matches the given query.")
+            raise NotFound(f"No Startup found for primary key {pk}.")
         self.check_object_permissions(self.request, obj)  # Check object permissions.
         return obj
     
@@ -94,7 +93,10 @@ class StartupViewSet(viewsets.ModelViewSet):
         """
         Handle requests to update a startup for a user.
         """
-        instance = self.get_object()
+        try:
+            instance = self.get_object()
+        except Startup.DoesNotExist:
+            return Response({"error": "Startup not found."}, status=status.HTTP_404_NOT_FOUND)
         
         # Check if the user is the owner of the startup
         user_startup = UserStartup.objects.filter(customuser=request.user, startup=instance)
@@ -102,8 +104,16 @@ class StartupViewSet(viewsets.ModelViewSet):
             return Response({"error": "You are not the owner of this startup."}, status=status.HTTP_403_FORBIDDEN)
         
         serializer = self.get_serializer(instance, data=request.data, partial=kwargs.pop('partial', False))
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            self.perform_update(serializer)
+        except Exception as e:
+            return Response({"error": f"An error occurred while updating the startup: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         return Response(serializer.data)
 
 
@@ -119,9 +129,8 @@ class StartupViewSet(viewsets.ModelViewSet):
         if not user_startup:
             raise PermissionDenied("You are not the owner of this startup.")
         
-        # Checking whether the startup has open projects
-        projects = Project.objects.filter(startup_id=instance.id)
-        if any(project.status != 'closed' for project in projects):
+        # Checking whether the startup has open projects using a database query
+        if Project.objects.filter(startup_id=instance.id).exclude(status='closed').exists():
             raise PermissionDenied("Cannot delete startup with ongoing projects.")
         
         # If the startup has all projects closed and the user is the owner,
