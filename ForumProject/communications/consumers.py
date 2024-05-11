@@ -87,28 +87,6 @@ class ChatConsumer(WebsocketConsumer):
         if not self.user.is_authenticated:
             return
 
-        if message.startswith('/pm '):
-            split = message.split(' ', 2)
-            target = split[1]
-            target_msg = split[2]
-
-
-            async_to_sync(self.channel_layer.group_send)(
-                f'inbox_{target}',
-                {
-                    'type': 'private_message',
-                    'user': self.user.first_name,
-                    'message': target_msg,
-                }
-            )
-
-            self.send(json.dumps({
-                'type': 'private_message_delivered',
-                'target': target,
-                'message': target_msg,
-            }))
-            return
-
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
             {
@@ -129,10 +107,4 @@ class ChatConsumer(WebsocketConsumer):
         self.send(text_data=json.dumps(event))
 
     def user_leave(self, event):
-        self.send(text_data=json.dumps(event))
-
-    def private_message(self, event):
-        self.send(text_data=json.dumps(event))
-
-    def private_message_delivered(self, event):
         self.send(text_data=json.dumps(event))

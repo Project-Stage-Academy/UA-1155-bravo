@@ -87,12 +87,6 @@ function connect() {
                 chatLog.value += data.user + " left the room.\n";
                 onlineUsersSelectorRemove(data.user);
                 break;
-            case "private_message":
-                chatLog.value += "PM from " + data.user + ": " + data.message + "\n";
-                break;
-            case "private_message_delivered":
-                chatLog.value += "PM to " + data.target + ": " + data.message + "\n";
-                break;
             default:
                 console.error("Unknown message type!");
                 break;
