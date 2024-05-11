@@ -74,6 +74,11 @@ function connect() {
                     onlineUsersSelectorAdd(data.users[i]);
                 }
                 break;
+            case "users_messages":
+                for (let i = 0; i < data.messages.length; i++) {
+                    chatLog.value += data.messages[i] + "\n";
+                }
+                break;
             case "user_join":
                 chatLog.value += data.user + " joined the room.\n";
                 onlineUsersSelectorAdd(data.user);
