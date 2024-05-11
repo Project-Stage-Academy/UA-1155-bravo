@@ -16,6 +16,7 @@ class Startup(models.Model):
         startup_city (str): The city where the startup is located.
         startup_address (str): The address of the startup.
         startup_logo (ImageField): The logo of the startup.
+        startup_prefs (str): A string containing notification preferences separated by commas.
     """
     
     startup_name = models.CharField(max_length=150, unique=True) 
@@ -25,6 +26,7 @@ class Startup(models.Model):
     startup_city = models.CharField(max_length=50)
     startup_address = models.CharField(max_length=150)
     startup_logo = models.ImageField(upload_to='media/startup_logos/', validators=[image_validator], null=True, blank=True)
+    startup_prefs = models.CharField(max_length=50)
 
     def __str__(self):
         """
@@ -46,3 +48,19 @@ class Startup(models.Model):
         
         if not self.startup_name or not self.startup_industry or not self.startup_phone or not self.startup_city or not self.startup_address:
             raise ValidationError("All fields must be filled in: name, industry, phone, country, city, address.")
+        
+    def get_startup_prefs(self):
+        """
+        Parse and return notification preferences as a list.
+        Returns:
+            list: A list of notification preferences.
+        """
+        return self.startup_prefs.split(",") if self.startup_prefs else []
+
+    def set_startup_prefs(self, prefs):
+        """
+        Set notification preferences from a list.
+        Args:
+            prefs (list): A list of notification preferences.
+        """
+        self.startup_prefs = ",".join(prefs)

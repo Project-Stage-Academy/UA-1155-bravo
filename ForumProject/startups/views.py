@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
 from projects.models import Project
 from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember, IsStartupMember
-from rest_framework.permissions import IsAuthenticated
+from django.core.exceptions import ValidationError
 from .models import Startup
 from users.models import UserStartup
 from .serializers import StartupSerializer
@@ -13,6 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .filters import StartupFilter
 from rest_framework import filters
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -237,3 +238,59 @@ class PersonalStartupList(generics.ListAPIView):
         return Startup.objects.filter(userstartup__customuser=user_id)
         
 
+class NotificationPreferencesAPIView(APIView):
+    """
+    A view to update the notification preferences of the authenticated user's associated startup.
+    This view allows authenticated users to update their startup's notification preferences,
+    such as email notifications and in-app notifications.
+    Methods:
+        post(request): Update the notification preferences based on the request data.
+    Attributes:
+        permission_classes (list): List of permission classes required to access this view.
+    """
+    permission_classes = [IsAuthenticated, IsCompanyMember]
+
+    allowed_methods = ['POST']
+
+    def post(self, request):
+        """
+        Update the notification preferences based on the request data.
+        This method retrieves the authenticated user and updates their associated startup's
+        notification preferences based on the request data.
+        Parameters:
+            request (Request): The HTTP request object.
+        Returns:
+            Response: Response object indicating the result of the operation.
+        """
+        user = request.user
+
+        prefs = request.data.get('startup_prefs', '')
+
+        email_notifications = 'email' in prefs.split(",")
+        in_app_notifications = 'in_app' in prefs.split(",")
+
+        try:
+            startup = Startup.objects.get(company_id=user.user_info.company_id)
+
+            prefs = startup.get_startup_prefs()
+
+            if email_notifications:
+                prefs.append('email')
+            else:
+                prefs.remove('email') if 'email' in prefs else None
+
+            if in_app_notifications:
+                prefs.append('in_app')
+            else:
+                prefs.remove('in_app') if 'in_app' in prefs else None
+
+            startup.set_startup_prefs(prefs)
+            startup.save()
+
+            return Response({'message': 'Notification preferences updated successfully.'}, status=status.HTTP_200_OK)
+        except Startup.DoesNotExist:
+            return Response({'error': 'Startup not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except ValidationError as e:
+            return Response({'error': 'Invalid input: {}'.format(e.message)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
