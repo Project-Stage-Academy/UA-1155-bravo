@@ -58,7 +58,7 @@ def create_notifications(instances, follow_status_change=True):
 
     return notifications
 
-def record_and_email_notifications(instance, follow_status_change=True):
+def do_notifications(instance, follow_status_change=True):
     """
     Creates Notification records and sends email notifications for a given InvestorProject instance.
 
@@ -82,16 +82,24 @@ def record_and_email_notifications(instance, follow_status_change=True):
         subject = f'The Project "{project.name}" has a change in {change}.'
         message = f'{str(notifications[0])}.\n\n\n{str(instance)}'
 
-        if 'email' in startup.startup_prefs.split(","):
-            # Asynchronously send email
-            email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
-            email_thread.start()
-        if 'in_app' in startup.startup_prefs.split(","):
-            print(f'Notification # {notifications[0].pk} sent "in_app".') # This is a placeholder for "in app" / push notifications implementation
+        if follow_status_change:
+            if startup.notice_preferences.email_on_followers_change:
+                # Asynchronously send email
+                email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
+                email_thread.start()
+            if startup.notice_preferences.in_app_on_followers_change:
+                print(message) # This is a placeholder for "in app" / push notifications implementation
+        else:
+            if startup.notice_preferences.email_on_share_subscription:
+                # Asynchronously send email
+                email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
+                email_thread.start()
+            if startup.notice_preferences.in_app_on_share_subscription:
+                print(message) # This is a placeholder for "in app" / push notifications implementation
 
 # Signal to record and send a notification when an investor starts following a project or changes a share
 @receiver(post_save, sender=InvestorProject)
-def investor_project_followed_or_subscription_changed(sender, instance, created, **kwargs):
+def project_followed_or_subscription_changed(sender, instance, created, **kwargs):
     """
     Signal handler to create Notification records and send email notifications when an 
     InvestorProject is created or updated.
@@ -103,14 +111,16 @@ def investor_project_followed_or_subscription_changed(sender, instance, created,
     """
     if created:
         # Investor just started following a project (share is initialized to 0 or another value)
-        record_and_email_notifications(instance)
+        do_notifications(instance)
+        if instance.share:
+            do_notifications(instance, follow_status_change=False)
     else:
         # Investor changed the share (subscription)
-        record_and_email_notifications(instance, follow_status_change=False)
+        do_notifications(instance, follow_status_change=False)
 
 # Signal to record and send a notification when an investor delists a project
 @receiver(post_delete, sender=InvestorProject)
-def investor_project_delisted(sender, instance, **kwargs):
+def project_delisted(sender, instance, **kwargs):
     """
     Signal handler to create a Notification record and send email notifications when an InvestorProject is deleted.
 
@@ -118,4 +128,4 @@ def investor_project_delisted(sender, instance, **kwargs):
     - sender (type): The model class that sent the signal.
     - instance (InvestorProject): The InvestorProject instance that triggered the signal.
     """
-    record_and_email_notifications(instance)
+    do_notifications(instance)

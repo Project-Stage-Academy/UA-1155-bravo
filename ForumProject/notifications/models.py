@@ -55,3 +55,14 @@ class Notification(models.Model):
         constraints = [
             models.CheckConstraint(check=models.Q(project__isnull=False) | models.Q(investor__isnull=False), name='project_or_investor_required'),
         ]
+
+class NotificationPreferences(models.Model):
+    startup = models.OneToOneField(Startup, 
+        on_delete=models.CASCADE,
+        related_name='notice_preferences',
+        null=True
+    )
+    email_on_followers_change = models.BooleanField(default=True, verbose_name='Followers change email notices')
+    email_on_share_subscription = models.BooleanField(default=True, verbose_name='Sibscriptions change email notices')
+    in_app_on_followers_change = models.BooleanField(default=True, verbose_name='Followers change in_app notices')
+    in_app_on_share_subscription = models.BooleanField(default=True, verbose_name='Sibscriptions change in_app notices')

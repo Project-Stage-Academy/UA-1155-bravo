@@ -125,8 +125,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Project name cannot be empty.")
         startup_id = self.context['request'].user.user_info.company_id
-        if Project.objects.filter(startup_id=startup_id, name=value).exists():
-            raise serializers.ValidationError("Project name must be unique for this Startup.")
+        if self.instance:
+            if Project.objects.filter(startup_id=startup_id, name=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError("Project name must be unique for this Startup.")
+        else:
+            if Project.objects.filter(startup_id=startup_id, name=value).exists():
+                raise serializers.ValidationError("Project name must be unique for this Startup.")
         return value
     
 class ProjectFilesSerializer(serializers.ModelSerializer):

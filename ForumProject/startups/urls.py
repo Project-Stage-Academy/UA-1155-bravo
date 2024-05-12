@@ -1,7 +1,7 @@
 from django.urls import path, include
 from .views import StartupViewSet
 from rest_framework import routers
-from .views import StartupViewSet, StartupList, StartupListDetailfilter, PersonalStartupList, NotificationPreferencesAPIView
+from .views import StartupViewSet, StartupList, StartupListDetailfilter, PersonalStartupList
 from rest_framework.routers import DefaultRouter
 from subscriptions.views import AddSubscription
 
@@ -19,7 +19,6 @@ urlpatterns = [
     path('my/', PersonalStartupList.as_view(), name='my-startup'),
     path('search/', StartupListDetailfilter.as_view(), name='startup-search'),
     path('subscribe/', AddSubscription.as_view({'get': 'list', 'post': 'create', }), name='startup-sub'),
-    path('notification-preferences/', NotificationPreferencesAPIView.as_view(), name='notification-preferences'),
 ]
 
 
