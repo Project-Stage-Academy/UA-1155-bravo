@@ -2,6 +2,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .models import Notification
 from projects.models import InvestorProject
+from startups.models import Startup
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 
@@ -81,9 +82,12 @@ def record_and_email_notifications(instance, follow_status_change=True):
         subject = f'The Project "{project.name}" has a change in {change}.'
         message = f'{str(notifications[0])}.\n\n\n{str(instance)}'
 
-        # Asynchronously send email
-        email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
-        email_thread.start()
+        if 'email' in startup.startup_prefs.split(","):
+            # Asynchronously send email
+            email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
+            email_thread.start()
+        if 'in_app' in startup.startup_prefs.split(","):
+            print(f'Notification # {notifications[0].pk} sent "in_app".') # This is a placeholder for "in app" / push notifications implementation
 
 # Signal to record and send a notification when an investor starts following a project or changes a share
 @receiver(post_save, sender=InvestorProject)

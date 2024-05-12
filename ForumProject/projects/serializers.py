@@ -67,6 +67,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         if startup_id is None:
             raise serializers.ValidationError("You must select Startup company to create a Project")
         
+        self.validate_project_name(validated_data['name'])
+
         try:
             startup = Startup.objects.get(id=startup_id)
         except ObjectDoesNotExist:
@@ -96,6 +98,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         # Iterate over the validated data and set the corresponding attributes on the instance
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        self.validate_project_name(validated_data['name'])
 
         # Save the updated instance
         instance.save()

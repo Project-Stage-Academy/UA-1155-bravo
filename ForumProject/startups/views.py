@@ -248,7 +248,7 @@ class NotificationPreferencesAPIView(APIView):
     Attributes:
         permission_classes (list): List of permission classes required to access this view.
     """
-    permission_classes = [IsAuthenticated, IsCompanyMember]
+    permission_classes = [IsAuthenticated, IsStartupCompanySelected]
 
     allowed_methods = ['POST']
 
@@ -270,7 +270,7 @@ class NotificationPreferencesAPIView(APIView):
         in_app_notifications = 'in_app' in prefs.split(",")
 
         try:
-            startup = Startup.objects.get(company_id=user.user_info.company_id)
+            startup = Startup.objects.get(id=user.user_info.company_id)
 
             prefs = startup.get_startup_prefs()
 
@@ -282,7 +282,7 @@ class NotificationPreferencesAPIView(APIView):
             if in_app_notifications:
                 prefs.append('in_app')
             else:
-                prefs.remove('in_app') if 'in_app' in prefs else None
+                prefs.remove('in_app') if 'in_app' in prefs else None            
 
             startup.set_startup_prefs(prefs)
             startup.save()
