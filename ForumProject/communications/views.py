@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import render, get_object_or_404
+from .serializers import RoomSerializer, MessageSerializer
+from .models import Room, Message
 
-from .models import Room
+from rest_framework import generics
 
 User = get_user_model()
 
@@ -24,3 +26,18 @@ def room_view(request, user_id):
     return render(request, 'room.html', {
         'room': chat_room,
     })
+
+class CreateConversationView(generics.CreateAPIView):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
+
+class SendMessageView(generics.CreateAPIView):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
+
+class ListMessagesView(generics.ListAPIView):
+    serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        conversation_id = self.kwargs['conversation_id']
+        return Message.objects.filter(room__id=conversation_id)
