@@ -35,7 +35,9 @@ class NotificationListView(generics.ListAPIView):
 
 class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
     """
-    TODO
+    Viewset for managing notification preferences of a startup.
+
+    Retrieves and updates notification preferences associated with the authenticated startup.
     """
     # queryset = NotificationPreferences
     queryset = NotificationPreferences.objects.all()
@@ -44,7 +46,20 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        TODO
+        Retrieves notification preferences for the authenticated startup.
+
+        Retrieves the notification preferences associated with the authenticated startup based on the 
+        startup ID from the request. If preferences are not found for the startup, a 404 error response is 
+        returned.
+
+        Args:
+        - request (Request): The incoming GET request.
+        - args: Additional arguments.
+        - kwargs: Additional keyword arguments.
+
+        Returns:
+        - Response: Response containing the retrieved notification preferences or a 404 error if preferences 
+        are not found for the startup.
         """
         startup_id = request.user.user_info.company_id
         if not startup_id:
@@ -62,7 +77,20 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """
-        TODO
+        Updates notification preferences for the authenticated startup.
+
+        If any of the fields are not boolean or are not listed in the model `NotificationPreferences`, 
+        a 400 error response is returned. It is okay if only some of the fields from `NotificationPreferences` 
+        are included in the body of the PUT request (in which case the values of fields not included 
+        should not be amended).
+
+        Args:
+        - request (Request): The incoming PUT request.
+        - args: Additional arguments.
+        - kwargs: Additional keyword arguments.
+
+        Returns:
+        - Response: Response indicating success or failure of the update operation.
         """
         startup_id = request.user.user_info.company_id
         if not startup_id:
@@ -77,6 +105,9 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
         
         try:
             serializer.is_valid(raise_exception=True)
+            for key in request.data.keys():
+                if key not in serializer.fields or not isinstance(request.data[key], bool):
+                    raise ValidationError(f"At leasst one field ('{key}') is not a valid boolean field.")
             serializer.save()
         except IntegrityError:
             return Response("Integrity Error: Could not save preferences.", status=status.HTTP_400_BAD_REQUEST)
