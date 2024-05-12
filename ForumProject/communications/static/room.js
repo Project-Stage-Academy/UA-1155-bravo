@@ -103,9 +103,3 @@ function connect() {
     }
 }
 connect();
-
-onlineUsersSelector.onchange = function() {
-    chatMessageInput.value = "/pm " + onlineUsersSelector.value + " ";
-    onlineUsersSelector.value = null;
-    chatMessageInput.focus();
-};

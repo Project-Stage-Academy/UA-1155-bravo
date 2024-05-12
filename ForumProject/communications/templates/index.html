@@ -31,6 +31,25 @@
             </div>
         </div>
         {% endfor %}
+        <h2>Your chats</h2>
+        {% for room in rooms %}
+        <div class="card w-50" style="height: 6rem;">
+            <div class="card-body">
+                {% if request.user.id == room.get_users_id.user_1 %}
+                <h5 class="card-title">{{ room.get_users_names.user_2 }}</h5>
+                {% else %}
+                <h5 class="card-title">{{ room.get_users_names.user_1 }}</h5>
+                {% endif %}
+
+
+                {% if request.user.id == room.get_users_id.user_1 %}
+                <a href="{% url 'communications:chat-room' user_id=room.get_users_id.user_2 %}" class="btn btn-primary">Send message</a>
+                {% else %}
+                <a href="{% url 'communications:chat-room' user_id=room.get_users_id.user_1 %}" class="btn btn-primary">Send message</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
     <script src="{% static 'index.js' %}"></script>
 </body>

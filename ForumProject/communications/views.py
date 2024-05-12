@@ -17,9 +17,9 @@ def index_view(request):
 def room_view(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if request.user.id > user.id:
-        thread_name = f'chat_{request.user.id}-{user.id}'
+        thread_name = f'chat_{request.user.id}_{user.id}'
     else:
-        thread_name = f'chat_{user.id}-{request.user.id}'
+        thread_name = f'chat_{user.id}_{request.user.id}'
     chat_room, created = Room.objects.get_or_create(name=thread_name)
     return render(request, 'room.html', {
         'room': chat_room,
