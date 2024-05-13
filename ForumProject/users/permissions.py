@@ -215,11 +215,11 @@ class IsStartupMember(BasePermission):
         Returns:
             bool: True if the user is a member of a startup, False otherwise.
         """     
-        # Перевірка, чи користувач аутентифікований
+        # Check if the user is authenticated
         if not request.user.is_authenticated:
             return False
 
-        # Перевірка, чи існує запис UserStartup, що відповідає користувачеві та стартапу
+        # Check if there is a UserStartup entry matching the user and startup
         user_startup = UserStartup.objects.filter(customuser=request.user, startup=view.get_object()).exists()
         
         return user_startup

@@ -241,11 +241,17 @@ class SubscriptionViewsets(viewsets.ModelViewSet, SubscriptionMixin):
         """
         try:
             subscription = self.get_object()
-            subscription.delete()
-            return Response({'message': 'Unsubscribed successfully.'}, status=status.HTTP_204_NO_CONTENT)
+            user_investor = UserInvestor.objects.get(customuser=request.user)
+            if subscription.investor == user_investor.investor:
+                subscription.delete()
+                return Response({'message': 'Unsubscribed successfully.'}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({'error': 'Subscription does not belong to the current user'}, status=status.HTTP_403_FORBIDDEN)
         except SubscribeInvestorStartup.DoesNotExist:
             return Response({'error': 'Subscription not found'}, status=status.HTTP_404_NOT_FOUND)
         except AttributeError:
             return Response({'error': 'Subscription ID is missing'}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
-            return Response({'error': 'Please select a unique startup to unsubscribe'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except UserInvestor.DoesNotExist:
+            return Response({'error': 'User is not associated with an investor'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
