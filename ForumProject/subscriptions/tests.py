@@ -9,6 +9,7 @@ from notifications.models import Notification
 from subscriptions.models import SubscribeInvestorStartup
 from rest_framework.test import APIClient, APITestCase
 from django.db import transaction
+from django.utils import timezone
 
 
 class SubscriptionTests(APITestCase):
@@ -126,6 +127,19 @@ class SubscriptionTests(APITestCase):
         UserStartup.objects.create(customuser=self.startup_user, startup=self.startup_profile, startup_role_id=1)
         UserRoleCompany.objects.create(user=self.startup_user, role='startup', company_id=self.startup_profile.id)
 
+    def tearDown(self):
+        '''
+        Teardown that is executed after each test case.
+        '''
+        CustomUser.objects.all().delete()
+        Investor.objects.all().delete()
+        Startup.objects.all().delete()
+        UserInvestor.objects.all().delete()
+        UserStartup.objects.all().delete()
+        UserRoleCompany.objects.all().delete()
+        SubscribeInvestorStartup.objects.all().delete()
+
+
     def test_user_investor_has_role(self):
         """
         Test if the user with the role of investor, investor2, startup  has a role assigned.
@@ -221,7 +235,17 @@ class SubscriptionTests(APITestCase):
         response = self.client.get(subscription_list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data)
-    
+
+    def test_invalid_token_subscribe(self):
+        """
+        Test that subscribing with an invalid token results in unauthorized access.
+        """
+        subscribe_url = reverse('subscriptions:add-subscriptions')
+        invalid_token = 'invalid_token'
+        subscription_data = {'startup': self.startup_profile.id}
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + invalid_token)
+        response = self.client.post(subscribe_url, subscription_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
     
     def create_subscription_instance(self):
         """
@@ -313,6 +337,24 @@ class SubscriptionTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data, {"error": "Subscription not found"})
+        
+    def test_no_permission_update_startup(self):
+        """
+        Test that an investor user does not have permission to update a startup profile.
+        """
+        update_url = reverse('startups:startup-detail', kwargs={'pk': self.startup_profile.pk})
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
+        updated_data = {
+            'startup_name': 'UpdatedTestStartup',
+            'startup_industry': 'Tech',
+            'startup_phone': '+3809876543',
+            'startup_country': 'UA',
+            'startup_city': 'Test City',
+            'startup_address': 'Test Address'
+        }
+        response = self.client.put(update_url, updated_data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data, {'detail':'You do not have permission to perform this action.'})
 
     
     def create_subscription_and_update_startup(self, investor_profile, startup_profile):
@@ -324,7 +366,7 @@ class SubscriptionTests(APITestCase):
             startup_profile (Startup): The startup profile to be updated.
 
         Returns:
-            Response: The response object containing the result of the startup profile update.
+            tuple: A tuple containing the response object of the startup profile update and the current time.
 
         Raises:
             AssertionError: If the startup profile is not updated successfully.
@@ -351,13 +393,19 @@ class SubscriptionTests(APITestCase):
                         f"Startup name did not update properly. Expected: {updated_data['startup_name']}, "
                         f"but got: {Startup.objects.get(pk=startup_profile.pk).startup_name}")
 
-        return update_response
+    def tearDown(self):
+        """
+        Clean up the test data after each individual test.
+        """
+        # Clean up only after the specific test
+        Notification.objects.all().delete()
 
     def test_profile_update_notification(self):
         """
         Test if the notification is sent to the investor when the startup profile is updated.
         """
-        update_response = self.create_subscription_and_update_startup(self.investor_profile, self.startup_profile)
+        # Отримати відповідь на оновлення та поточний час
+        self.create_subscription_and_update_startup(self.investor_profile, self.startup_profile)
 
         # Check if the corresponding notification is displayed in the investor's notification list
         notification_url = reverse('investors:investor-notify')
@@ -367,13 +415,34 @@ class SubscriptionTests(APITestCase):
         self.assertEqual(notifications_response.status_code, status.HTTP_200_OK)
         notification_count = Notification.objects.count()
         self.assertGreater(notification_count, 0, "No notifications found in the database")
+        
+        expected_data = {
+            "project": None,
+            "startup": 6,
+            "investor": 11,
+            "trigger": "startup profile updated",
+            "initiator": "startup",
+        }
+        first_notification_data = notifications_response.data[0]  
+        self.assertEqual(first_notification_data['project'], expected_data['project'])
+        self.assertEqual(first_notification_data['startup'], expected_data['startup'])
+        self.assertEqual(first_notification_data['investor'], expected_data['investor'])
+        self.assertEqual(first_notification_data['trigger'], expected_data['trigger'])
+        self.assertEqual(first_notification_data['initiator'], expected_data['initiator'])
+
+    def tearDown(self):
+        """
+        Clean up the test data after each individual test.
+        """
+        # Clean up only after the specific test
+        Notification.objects.all().delete()
 
     def test_notifications_two_investors(self):
         """
         Test if notifications are sent to multiple investors when the startup profile is updated.
         """
-        update_response = self.create_subscription_and_update_startup(self.investor_profile, self.startup_profile)
-        update_response = self.create_subscription_and_update_startup(self.investor_profile2, self.startup_profile)
+        self.create_subscription_and_update_startup(self.investor_profile, self.startup_profile)
+        self.create_subscription_and_update_startup(self.investor_profile2, self.startup_profile)
 
         # Check if the corresponding notification is displayed in the investor's notification list
         notification_url = reverse('investors:investor-notify')
@@ -384,3 +453,18 @@ class SubscriptionTests(APITestCase):
         notification_count = Notification.objects.count()
         self.assertGreater(notification_count, 1, "No notifications found in the database")
         
+        expected_data2 = {
+            "project": None,
+            "startup": 5,
+            "investor": 9,
+            "trigger": "startup profile updated",
+            "initiator": "startup",
+        }
+        first_notification_data = notifications_response.data[1]  
+        self.assertEqual(first_notification_data['project'], expected_data2['project'])
+        self.assertEqual(first_notification_data['startup'], expected_data2['startup'])
+        self.assertEqual(first_notification_data['investor'], expected_data2['investor'])
+        self.assertEqual(first_notification_data['trigger'], expected_data2['trigger'])
+        self.assertEqual(first_notification_data['initiator'], expected_data2['initiator'])
+
+
