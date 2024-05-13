@@ -128,4 +128,5 @@ def project_delisted(sender, instance, **kwargs):
     - sender (type): The model class that sent the signal.
     - instance (InvestorProject): The InvestorProject instance that triggered the signal.
     """
+    instance.__class__.__str__ = lambda self: 'The Investor has stopped following this Project'
     do_notifications(instance)

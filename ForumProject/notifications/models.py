@@ -63,6 +63,6 @@ class NotificationPreferences(models.Model):
         null=True
     )
     email_on_followers_change = models.BooleanField(default=True, verbose_name='Followers change email notices')
-    email_on_share_subscription = models.BooleanField(default=True, verbose_name='Sibscriptions change email notices')
+    email_on_share_subscription = models.BooleanField(default=True, verbose_name='Subscriptions change email notices')
     in_app_on_followers_change = models.BooleanField(default=True, verbose_name='Followers change in_app notices')
-    in_app_on_share_subscription = models.BooleanField(default=True, verbose_name='Sibscriptions change in_app notices')
+    in_app_on_share_subscription = models.BooleanField(default=True, verbose_name='Subscriptions change in_app notices')

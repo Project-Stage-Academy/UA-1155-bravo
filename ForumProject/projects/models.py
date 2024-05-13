@@ -154,6 +154,7 @@ class InvestorProject(models.Model):
         if self.share < 0 or self.share > 100:
             raise ValidationError("Share percentage must be between 0 and 100.")
         
+        
 class ProjectLog(models.Model):
     """
     Model representing a log entry for project-related events.

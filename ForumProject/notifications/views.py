@@ -49,7 +49,7 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
         Retrieves notification preferences for the authenticated startup.
 
         Retrieves the notification preferences associated with the authenticated startup based on the 
-        startup ID from the request. If preferences are not found for the startup, a 404 error response is 
+        startup ID from the request. If preferences are not found for the startup, a 400 error response is 
         returned.
 
         Args:
@@ -58,13 +58,13 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
         - kwargs: Additional keyword arguments.
 
         Returns:
-        - Response: Response containing the retrieved notification preferences or a 404 error if preferences 
+        - Response: Response containing the retrieved notification preferences or a 400 error if preferences 
         are not found for the startup.
         """
         startup_id = request.user.user_info.company_id
         if not startup_id:
             return Response('Notifications Preferences are specific to each Startup. Please first select a Startup',
-                            status=status.HTTP_404_NOT_FOUND)
+                            status=status.HTTP_400_BAD_REQUEST)
 
 
         try:
@@ -72,7 +72,7 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
         except NotificationPreferences.DoesNotExist:
             raise NotFound("Preferences for this startup were not found.")
         
-        serializer = self.get_serializer(preferences)
+        serializer = self.get_serializer(preferences, context={'startup_id': startup_id})
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
@@ -94,20 +94,20 @@ class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
         """
         startup_id = request.user.user_info.company_id
         if not startup_id:
-            return Response("Please first select Startup to set notifications preferences for it.", status=status.HTTP_404_NOT_FOUND)
+            return Response("Please first select Startup to set notifications preferences for it.", status=status.HTTP_400_BAD_REQUEST)
         try:
             instance = NotificationPreferences.objects.get(startup_id=startup_id)
         except NotificationPreferences.DoesNotExist:
-            return Response("Preferences for this startup were not found.", status=status.HTTP_404_NOT_FOUND)
+            return Response("Preferences for this startup were not found.", status=status.HTTP_400_BAD_REQUEST)
         
         partial = kwargs.pop('partial', False)
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial, context={'startup_id': startup_id})
         
         try:
             serializer.is_valid(raise_exception=True)
             for key in request.data.keys():
                 if key not in serializer.fields or not isinstance(request.data[key], bool):
-                    raise ValidationError(f"At leasst one field ('{key}') is not a valid boolean field.")
+                    raise ValidationError(f"At least one field ('{key}') is not a valid boolean field.")
             serializer.save()
         except IntegrityError:
             return Response("Integrity Error: Could not save preferences.", status=status.HTTP_400_BAD_REQUEST)

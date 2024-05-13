@@ -19,7 +19,8 @@ class NotificationAdmin(admin.ModelAdmin):
 @admin.register(NotificationPreferences)
 
 class NotificationPreferencesAdmin(admin.ModelAdmin):
-    list_display = ['id',
+    list_display = [
+        'id',
         'startup',
         'email_on_followers_change',
         'email_on_share_subscription',
