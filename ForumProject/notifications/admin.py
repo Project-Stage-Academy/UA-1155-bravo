@@ -1,5 +1,5 @@
 from django.contrib import admin
-from notifications.models import Notification
+from notifications.models import Notification, NotificationPreferences
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
@@ -15,3 +15,16 @@ class NotificationAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+    
+@admin.register(NotificationPreferences)
+
+class NotificationPreferencesAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'startup',
+        'email_on_followers_change',
+        'email_on_share_subscription',
+        'in_app_on_followers_change',
+        'in_app_on_share_subscription'
+    ]
+

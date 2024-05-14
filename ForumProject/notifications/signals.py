@@ -2,22 +2,32 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .models import Notification
 from projects.models import InvestorProject
+from startups.models import Startup
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+
+from users.models import UserStartup
+from .utils import send_email_async
+
+from django.db import DatabaseError
+from django.conf import settings
+import logging
+import threading
+
+logger = logging.getLogger(__name__)
 
 def create_notifications(instances, follow_status_change=True):
     """
-    Creates Notification records for the provided InvestorProject instances.
+    Creates Notification records for the provided InvestorProject instance(s).
 
-    This function creates Notification records either for a single InvestorProject instance
-    or for multiple instances in bulk.
-
-    Parameters:
-    - instances: A single InvestorProject instance or a list of them.
-    - follow_status_change (bool): Whether the trigger is a change in the following status.
-      If False, the trigger is considered a change in the subscription share.
+    Args:
+    - instances (InvestorProject or list[InvestorProject]): The InvestorProject instance(s) for which 
+      to create notifications.
+    - follow_status_change (bool, optional): True if the trigger is a change in the following status, 
+      False if the trigger is a change in subscription share. Defaults to True.
 
     Returns:
-    - List of created Notification instances.
+    - list[Notification]: List of created Notification instances.
     """
     if not isinstance(instances, list):
         instances = [instances]
@@ -39,47 +49,84 @@ def create_notifications(instances, follow_status_change=True):
             )
         )
 
-    # Bulk create all notifications
-    if notifications:
-        return Notification.objects.bulk_create(notifications)
-    return []
+    try:
+        # Bulk create all notifications
+        if notifications:
+            return Notification.objects.bulk_create(notifications)
+    except DatabaseError as db_err:
+        logger.error(f"Database error while creating notifications: {str(db_err)}")
 
-# Signal to create a notification when an investor starts following a project or changes a share
-@receiver(post_save, sender=InvestorProject)
-def investor_project_followed_or_subscription_changed(sender, instance, created, **kwargs):
+    return notifications
+
+def do_notifications(instance, follow_status_change=True):
     """
-    Signal handler to create notifications when an InvestorProject is created or updated.
+    Creates Notification records and sends email notifications for a given InvestorProject instance.
 
-    This signal is triggered when an investor starts following a project or changes their 
-    subscription share in a project. It creates a `Notification` record indicating whether 
-    the trigger was due to following status or subscription share.
+    Args:
+    - instance (InvestorProject): The InvestorProject instance for which to create and send notifications.
+    - follow_status_change (bool, optional): True if the trigger is a change in the following status, 
+      False if it's a change in subscription share. Defaults to True.
+    """
+    # Get all CustomUsers' emails associated with this startup
+    project = instance.project
+    startup = project.startup
+    user_startups = UserStartup.objects.select_related('customuser').filter(startup=startup)
+    recipients = [user.customuser.email for user in user_startups if user.customuser.email]
 
-    Parameters:
-    - sender (type): The model class that sent the signal (usually `InvestorProject`).
-    - instance (InvestorProject): The instance that triggered the signal.
+    #trigger recording of notifications to the database
+    notifications = create_notifications(instance, follow_status_change=follow_status_change)
+    
+    if recipients and notifications:
+        # prepare data for email
+        change = 'follower(s) list' if follow_status_change else 'subscription'
+        subject = f'The Project "{project.name}" has a change in {change}.'
+        message = f'{str(notifications[0])}.\n\n\n{str(instance)}'
+
+        if follow_status_change:
+            if startup.notice_preferences.email_on_followers_change:
+                # Asynchronously send email
+                email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
+                email_thread.start()
+            if startup.notice_preferences.in_app_on_followers_change:
+                print(message) # This is a placeholder for "in app" / push notifications implementation
+        else:
+            if startup.notice_preferences.email_on_share_subscription:
+                # Asynchronously send email
+                email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
+                email_thread.start()
+            if startup.notice_preferences.in_app_on_share_subscription:
+                print(message) # This is a placeholder for "in app" / push notifications implementation
+
+# Signal to record and send a notification when an investor starts following a project or changes a share
+@receiver(post_save, sender=InvestorProject)
+def project_followed_or_subscription_changed(sender, instance, created, **kwargs):
+    """
+    Signal handler to create Notification records and send email notifications when an 
+    InvestorProject is created or updated.
+
+    Args:
+    - sender (type): The model class that sent the signal.
+    - instance (InvestorProject): The InvestorProject instance that triggered the signal.
     - created (bool): Whether the `InvestorProject` instance was just created.
-    - kwargs (dict): Additional arguments for the signal handler.
     """
     if created:
         # Investor just started following a project (share is initialized to 0 or another value)
-        create_notifications(instance)
+        do_notifications(instance)
+        if instance.share:
+            do_notifications(instance, follow_status_change=False)
     else:
         # Investor changed the share (subscription)
-        create_notifications(instance, follow_status_change=False)
+        do_notifications(instance, follow_status_change=False)
 
-# Signal to create a notification when an investor delists a project
+# Signal to record and send a notification when an investor delists a project
 @receiver(post_delete, sender=InvestorProject)
-def investor_project_delisted(sender, instance, **kwargs):
+def project_delisted(sender, instance, **kwargs):
     """
-    Signal handler that creates a notification when an `InvestorProject` record is deleted.
+    Signal handler to create a Notification record and send email notifications when an InvestorProject is deleted.
 
-    This signal is triggered when an investor delists a project, indicating that they 
-    have stopped following the project. It creates a `Notification` record to represent 
-    this change.
-
-    Parameters:
-    - sender (type): The model class that sent the signal (usually `InvestorProject`).
-    - instance (InvestorProject): The instance that triggered the signal.
-    - kwargs (dict): Additional arguments for the signal handler.
+    Args:
+    - sender (type): The model class that sent the signal.
+    - instance (InvestorProject): The InvestorProject instance that triggered the signal.
     """
-    create_notifications(instance)
+    instance.__class__.__str__ = lambda self: 'The Investor has stopped following this Project'
+    do_notifications(instance)

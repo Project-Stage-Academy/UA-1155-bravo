@@ -143,7 +143,7 @@ class InvestorProject(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.investor} shortlisted Project {self.project}, subscription: {self.share}%'
+        return f'Interest of {self.investor} in Project {self.project} has changed, current subscription proposal: {self.share}%'
 
     def clean(self):
         """
@@ -153,6 +153,7 @@ class InvestorProject(models.Model):
         """
         if self.share < 0 or self.share > 100:
             raise ValidationError("Share percentage must be between 0 and 100.")
+        
         
 class ProjectLog(models.Model):
     """

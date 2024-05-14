@@ -31,5 +31,5 @@ urlpatterns = [
     path('communications/', include('communications.urls')),
     path('subscriptions/', include('subscriptions.urls')),
     path('dashboard/', include('dashboard.urls')),
-    
+    path('notifications/', include('notifications.urls'))
 ]

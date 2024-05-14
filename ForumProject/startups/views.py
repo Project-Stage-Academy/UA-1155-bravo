@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
 from projects.models import Project
 from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember, IsStartupMember
-from rest_framework.permissions import IsAuthenticated
+from django.core.exceptions import ValidationError
 from .models import Startup
 from users.models import UserStartup
 from .serializers import StartupSerializer
@@ -13,6 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .filters import StartupFilter
 from rest_framework import filters
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -235,5 +236,3 @@ class PersonalStartupList(generics.ListAPIView):
         """
         user_id = self.request.user.id
         return Startup.objects.filter(userstartup__customuser=user_id)
-        
-

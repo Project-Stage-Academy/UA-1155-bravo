@@ -3,13 +3,13 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.decorators import api_view, permission_classes
-from .models import InvestorProject
+from .models import Project, InvestorProject
 from .serializers import InvestorProjectSerializer
 
-from users.permissions import (IsInvestorRole, IsCompanyMember,)
+from users.permissions import (IsInvestorRole, IsInvestorCompanySelected, IsStartupCompanySelected)
 
 @api_view(['POST'])
-@permission_classes([IsInvestorRole, IsCompanyMember])
+@permission_classes([IsInvestorRole, IsInvestorCompanySelected])
 def follow(request, project_id):
     """
     Shortlist a project for an investor with a share of zero.
@@ -34,6 +34,11 @@ def follow(request, project_id):
     
     investor_id = request.user.user_info.company_id
 
+    # Check if a Project with given project_id exists
+    if not Project.objects.filter(pk=project_id):
+        return Response({"error": "Project does not exist"},
+                        status=status.HTTP_400_BAD_REQUEST)
+
     # Check if an InvestorProject with the given project_id and investor_id already exists
     if InvestorProject.objects.filter(project_id=project_id, investor_id=investor_id).exists():
         return Response({"error": "Project is already followed by this investor"},
@@ -50,7 +55,7 @@ def follow(request, project_id):
     return Response({"message": "Project shortlisted with zero share"}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
-@permission_classes([IsInvestorRole, IsCompanyMember])
+@permission_classes([IsInvestorRole, IsInvestorCompanySelected])
 def subscription(request, project_id, share):
     """
     Subscribe an investor to a project with a given share.
@@ -110,7 +115,7 @@ def subscription(request, project_id, share):
         )
 
 @api_view(['POST'])
-@permission_classes([IsInvestorRole, IsCompanyMember])
+@permission_classes([IsInvestorRole, IsInvestorCompanySelected])
 def delist_project(request, project_id):
     """
     Delist a project for a specific investor.
@@ -139,7 +144,7 @@ def delist_project(request, project_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsCompanyMember])
+@permission_classes([IsInvestorCompanySelected | IsStartupCompanySelected])
 def view_followed_projects(request):
     """
     Retrieve a list of projects followed by an investor or created by a startup and followed by investors.

@@ -67,6 +67,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         if startup_id is None:
             raise serializers.ValidationError("You must select Startup company to create a Project")
         
+        self.validate_project_name(validated_data['name'])
+
         try:
             startup = Startup.objects.get(id=startup_id)
         except ObjectDoesNotExist:
@@ -97,6 +99,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
+        self.validate_project_name(validated_data['name'])
+
         # Save the updated instance
         instance.save()
 
@@ -121,8 +125,12 @@ class ProjectSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Project name cannot be empty.")
         startup_id = self.context['request'].user.user_info.company_id
-        if Project.objects.filter(startup_id=startup_id, name=value).exists():
-            raise serializers.ValidationError("Project name must be unique for this Startup.")
+        if self.instance:
+            if Project.objects.filter(startup_id=startup_id, name=value).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError("Project name must be unique for this Startup.")
+        else:
+            if Project.objects.filter(startup_id=startup_id, name=value).exists():
+                raise serializers.ValidationError("Project name must be unique for this Startup.")
         return value
     
 class ProjectFilesSerializer(serializers.ModelSerializer):
