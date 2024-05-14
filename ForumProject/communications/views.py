@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 
 from .models import Room
@@ -6,6 +7,7 @@ from .models import Room
 User = get_user_model()
 
 
+@login_required
 def index_view(request):
     users = User.objects.exclude(id=request.user.id)
     rooms_list = Room.objects.filter(name__contains=str(request.user.id))
@@ -14,6 +16,7 @@ def index_view(request):
     })
 
 
+@login_required
 def room_view(request, user_id):
     user = get_object_or_404(User, id=user_id)
     if request.user.id > user.id:

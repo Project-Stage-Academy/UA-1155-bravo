@@ -47,6 +47,7 @@ chatMessageSend.onclick = function() {
 let chatSocket = null;
 
 function connect() {
+    chatLog.value = '';
     chatSocket = new WebSocket("ws://" + window.location.host + "/ws/chat/" + roomName + "/");
 
     chatSocket.onopen = function(e) {
