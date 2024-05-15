@@ -109,9 +109,9 @@ class ChatConsumer(WebsocketConsumer):
     def user_leave(self, event):
         self.send(text_data=json.dumps(event))
 
-class NotificationConsumer(AsyncWebsocketConsumer):
+class ChatNotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_group_name = f'notifications_{self.scope["user"].id}'
+        self.room_group_name = f'chat_notifications_{self.scope["user"].id}'
 
         # Join room group
         await self.channel_layer.group_add(
@@ -128,11 +128,11 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         )
 
     # Receive message from room group
-    async def send_notification(self, event):
-        notification = event['notification']
+    async def send_chat_notification(self, event):
+        chat_notification = event['chat_notification']
 
         # Send message to WebSocket
         await self.send(text_data=json.dumps({
-            'notification': notification
+            'chat_notification': chat_notification
         }))
 

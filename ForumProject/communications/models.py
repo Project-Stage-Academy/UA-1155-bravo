@@ -9,13 +9,13 @@ from django.db import models
 
 User = get_user_model()
 
-class Notification(models.Model):
+class ChatNotification(models.Model):
     recipient = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.ForeignKey('communications.Message', on_delete=models.CASCADE)
     read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'Notification for {self.recipient.username}'
+        return f'Chat notification for {self.recipient.username}'
 
 # @receiver(post_save, sender=Message)
 # def create_notification(sender, instance, created, **kwargs):
