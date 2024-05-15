@@ -201,4 +201,34 @@ class NotificationsTestCase(TestCase):
 
         self.assertEqual(notifications_count, 1)
 
+    def test_subscription_creates_notification(self):
+        """
+        Test case to check if offering a stake in the project creates a notification.
+        """
+        # Authenticate the investor
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
+
+        # Offer a stake in the project
+        share = 50  # You can set any share value for testing purposes
+        offer_stake_url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
+        response = self.client.post(offer_stake_url)
+
+        # Check if the request was successful (HTTP 201 Created)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check if a record is added to the Notification table
+        current_investor_id = UserRoleCompany.objects.get(user=self.users[1]).company_id
+        current_investor = Investor.objects.get(id=current_investor_id)
+        notifications_count = Notification.objects.filter(
+            project=self.project,
+            startup=self.project.startup,
+            investor=current_investor,
+            trigger='subscription changed',
+            initiator='investor'
+        ).count()
+
+        self.assertEqual(notifications_count, 1)
+
+
 
