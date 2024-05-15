@@ -24,11 +24,6 @@ def get_online_users(room):
     return [user.first_name for user in room.online.all()]
 
 
-@sync_to_async
-def get_users_messages(messages):
-    return [str(message) for message in messages]
-
-
 @database_sync_to_async
 def add_user_to_online(room, user):
     return room.online.add(user)

@@ -27,9 +27,11 @@ function onlineUsersSelectorRemove(value) {
 // focus 'chatMessageInput' when user opens the page
 chatMessageInput.focus();
 
+
+const ENTER_KEY_CODE = 13;
 // submit if the user presses the enter key
 chatMessageInput.onkeyup = function(e) {
-    if (e.keyCode === 13) {  // enter key
+    if (e.keyCode === ENTER_KEY_CODE) {  // enter key
         chatMessageSend.click();
     }
 };
@@ -47,7 +49,6 @@ chatMessageSend.onclick = function() {
 let chatSocket = null;
 
 function connect() {
-    chatLog.value = '';
     chatSocket = new WebSocket("ws://" + window.location.host + "/ws/chat/" + roomName + "/");
 
     chatSocket.onopen = function(e) {
@@ -73,11 +74,6 @@ function connect() {
             case "user_list":
                 for (let i = 0; i < data.users.length; i++) {
                     onlineUsersSelectorAdd(data.users[i]);
-                }
-                break;
-            case "users_messages":
-                for (let i = 0; i < data.messages.length; i++) {
-                    chatLog.value += data.messages[i] + "\n";
                 }
                 break;
             case "user_join":

@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 
-from .models import Room
+from .models import Room, Message
 
 User = get_user_model()
 
@@ -24,6 +24,9 @@ def room_view(request, user_id):
     else:
         thread_name = f'chat_{user.id}_{request.user.id}'
     chat_room, created = Room.objects.get_or_create(name=thread_name)
+
+    messages = Message.objects.filter(room=chat_room)
+    users_messages = '\n'.join([str(message) for message in messages])+'\n'
     return render(request, 'room.html', {
-        'room': chat_room,
+        'room': chat_room, 'users_messages': users_messages
     })
