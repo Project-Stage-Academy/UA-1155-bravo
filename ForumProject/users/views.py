@@ -60,7 +60,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
             response.set_cookie(
                 'jwt_token',
                 token,
-                max_age=300,  # Token lifetime (5 minutes)
+                max_age=30000,  # Token lifetime (5 minutes)
                 httponly=True,  # To prevent JavaScript access
                 secure=True,  # If using HTTPS
                 samesite='Strict',
@@ -73,7 +73,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
             response.set_cookie(
                 'refresh_token',
                 refresh_token,
-                max_age=400,
+                max_age=40000,
                 httponly=True,
                 secure=True,
                 samesite='Strict',
@@ -114,7 +114,7 @@ class TokenRefreshView(BaseTokenRefreshView):
             response.set_cookie(
                 'jwt_token',
                 token,
-                max_age=300,
+                max_age=30000,
                 httponly=True,
                 secure=True,
                 samesite='Strict',
