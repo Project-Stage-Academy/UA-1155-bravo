@@ -1,5 +1,3 @@
-// chat/static/room.js
-
 console.log("Sanity check from room.js.");
 
 const roomName = JSON.parse(document.getElementById('roomName').textContent);
@@ -27,9 +25,10 @@ function onlineUsersSelectorRemove(value) {
 // focus 'chatMessageInput' when user opens the page
 chatMessageInput.focus();
 
+const ENTER_KEY_CODE = 13;
 // submit if the user presses the enter key
 chatMessageInput.onkeyup = function(e) {
-    if (e.keyCode === 13) {  // enter key
+    if (e.keyCode === ENTER_KEY_CODE) {  // enter key
         chatMessageSend.click();
     }
 };
@@ -42,10 +41,32 @@ chatMessageSend.onclick = function() {
     chatMessageInput.value = "";
 };
 
-// chat/static/room.js
+// Function to handle incoming messages
+function handleIncomingMessage(data) {
+    chatLog.value += `${data.user}: ${data.message}\n`;
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
 
-let chatSocket = null;
+// Function to handle user list updates
+function handleUserList(data) {
+    data.users.forEach(user => onlineUsersSelectorAdd(user));
+}
 
+// Function to handle user join
+function handleUserJoin(data) {
+    chatLog.value += `${data.user} joined the room.\n`;
+    onlineUsersSelectorAdd(data.user);
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Function to handle user leave
+function handleUserLeave(data) {
+    chatLog.value += `${data.user} left the room.\n`;
+    onlineUsersSelectorRemove(data.user);
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+// Function to connect to WebSocket and setup event handlers
 function connect() {
     chatSocket = new WebSocket("ws://" + window.location.host + "/ws/chat/" + roomName + "/");
 
@@ -67,33 +88,21 @@ function connect() {
 
         switch (data.type) {
             case "chat_message":
-                chatLog.value += data.user + ": " + data.message + "\n";  // new
+                handleIncomingMessage(data);
                 break;
             case "user_list":
-                for (let i = 0; i < data.users.length; i++) {
-                    onlineUsersSelectorAdd(data.users[i]);
-                }
-                break;
-            case "users_messages":
-                for (let i = 0; i < data.messages.length; i++) {
-                    chatLog.value += data.messages[i] + "\n";
-                }
+                handleUserList(data);
                 break;
             case "user_join":
-                chatLog.value += data.user + " joined the room.\n";
-                onlineUsersSelectorAdd(data.user);
+                handleUserJoin(data);
                 break;
             case "user_leave":
-                chatLog.value += data.user + " left the room.\n";
-                onlineUsersSelectorRemove(data.user);
+                handleUserLeave(data);
                 break;
             default:
                 console.error("Unknown message type!");
                 break;
         }
-
-        // scroll 'chatLog' to the bottom
-        chatLog.scrollTop = chatLog.scrollHeight;
     };
 
     chatSocket.onerror = function(err) {
@@ -102,4 +111,5 @@ function connect() {
         chatSocket.close();
     }
 }
+
 connect();
