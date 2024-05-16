@@ -1,12 +1,12 @@
 import json
+import logging
+from channels.generic.websocket import AsyncWebsocketConsumer
 
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer
-
-from .models import Room, Message
+from .utils import get_room, get_messages, get_online_users, get_user_first_name, \
+    add_user_to_online, remove_user_from_online, create_message
 
 
-class ChatConsumer(WebsocketConsumer):
+class ChatConsumer(AsyncWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
@@ -17,94 +17,91 @@ class ChatConsumer(WebsocketConsumer):
         self.user = None
         self.user_inbox = None
 
-    def connect(self):
+    async def connect(self):
+        if not self.scope['user'].is_authenticated:
+            await self.close()
+            return
+
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'chat_{self.room_name}'
-        self.room = Room.objects.get(name=self.room_name)
-        self.messages = Message.objects.filter(room=self.room)
+        self.room = await get_room(self.room_name)
+        self.messages = await get_messages(self.room)
         self.user = self.scope['user']
         self.user_inbox = f'inbox_{self.user.first_name}'
 
-        self.accept()
+        await self.accept()
 
-        async_to_sync(self.channel_layer.group_add)(
+        await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name,
         )
 
-        self.send(json.dumps({
+        await self.send(json.dumps({
             'type': 'user_list',
-            'users': [user.first_name for user in self.room.online.all()],
+            'users': await get_online_users(self.room),
         }))
 
-        if self.user.is_authenticated:
-            async_to_sync(self.channel_layer.group_add)(
-                self.user_inbox,
-                self.channel_name,
-            )
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name,
-                {
-                    'type': 'users_messages',
-                    'messages': [str(message) for message in self.messages],
-                }
-            )
-            async_to_sync(self.channel_layer.group_send)(
-                self.room_group_name,
-                {
-                    'type': 'user_join',
-                    'user': self.user.first_name,
-                }
-            )
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'user_join',
+                'user': await get_user_first_name(self.user),
+            }
+        )
 
-            self.room.online.add(self.user)
+        await add_user_to_online(self.room, self.user)
 
-    def disconnect(self, close_code):
-        async_to_sync(self.channel_layer.group_discard)(
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name,
         )
 
         if self.user.is_authenticated:
-            async_to_sync(self.channel_layer.group_discard)(
+            await self.channel_layer.group_discard(
                 self.user_inbox,
                 self.channel_name,
             )
 
-            async_to_sync(self.channel_layer.group_send)(
+            await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     'type': 'user_leave',
-                    'user': self.user.first_name,
+                    'user': await get_user_first_name(self.user),
                 }
             )
-            self.room.online.remove(self.user)
+            await remove_user_from_online(self.room, self.user)
 
-    def receive(self, text_data=None, bytes_data=None):
-        text_data_json = json.loads(text_data)
+    async def receive(self, text_data=None, bytes_data=None):
+        try:
+            text_data_json = json.loads(text_data)
+        except json.JSONDecodeError:
+            logging.error("Error: Failed to parse JSON data.")
+            return
         message = text_data_json['message']
 
         if not self.user.is_authenticated:
             return
 
-        async_to_sync(self.channel_layer.group_send)(
+        await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'user': self.user.first_name,
+                'user': await get_user_first_name(self.user),
                 'message': message,
             }
         )
-        Message.objects.create(user=self.user, room=self.room, content=message)
+        await create_message(self.user, self.room, message)
 
-    def chat_message(self, event):
-        self.send(text_data=json.dumps(event))
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps(event))
 
-    def user_join(self, event):
-        self.send(text_data=json.dumps(event))
+    async def user_join(self, event):
+        await self.send(text_data=json.dumps(event))
 
-    def users_messages(self, event):
-        self.send(text_data=json.dumps(event))
+    async def users_messages(self, event):
+        await self.send(text_data=json.dumps(event))
 
-    def user_leave(self, event):
-        self.send(text_data=json.dumps(event))
+    async def user_leave(self, event):
+        await self.send(text_data=json.dumps(event))
+
