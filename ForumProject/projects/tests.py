@@ -22,13 +22,20 @@ class ProjectsTestCase(TestCase):
     """
     
     @staticmethod
-    def visit_endpoint(data, url_name, token):
+    def visit_endpoint(url_name, token, method='POST', data={}, pk=None):
         """
         Helper function. TODO - make proper docstring
         """
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
-        return client.post(reverse(url_name), data, format='json')
+        if method.upper() == 'GET':
+            return client.get(reverse(url_name, kwargs={'pk': pk}), data, format='json')
+        elif method.upper() == 'PUT':
+            return client.put(reverse(url_name, kwargs={'pk': pk}), data, format='json')
+        elif method.upper() == 'DELETE':
+            return client.delete(reverse(url_name, kwargs={'pk': pk}))
+        else:
+            return client.post(reverse(url_name), data, format='json')
     
     @classmethod
     @transaction.atomic
@@ -99,11 +106,12 @@ class ProjectsTestCase(TestCase):
             'budget_amount': 9000
         }
         cls.project_create_response = cls.visit_endpoint(
-            cls.project_test_data, 
             'projects:project-list', 
-            cls.tokens[cls.user_startuper.email]
+            cls.tokens[cls.user_startuper.email],
+            data = cls.project_test_data
         )
 
+    # Group of test regarding creation of a Project
     def test_ok_project_created_by_startuper(self):
         self.assertTrue(Project.objects.exists())
         self.assertEqual(Project.objects.count(), 1)
@@ -112,9 +120,10 @@ class ProjectsTestCase(TestCase):
 
     def test_fail_project_creation_by_investor(self):
         response = self.project_create_response = self.visit_endpoint(
-            self.project_test_data, 
             'projects:project-list', 
-            self.tokens[self.user_investor.email])
+            self.tokens[self.user_investor.email],
+            data = self.project_test_data
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertIn('You do not have permission to perform this action.', response.data['detail'])
 
@@ -127,11 +136,66 @@ class ProjectsTestCase(TestCase):
             'budget_amount': 3000
         }
         response = self.visit_endpoint(
-            project_2_data, 
             'projects:project-list', 
-            self.tokens[self.user_startuper.email])
+            self.tokens[self.user_startuper.email],
+            data = project_2_data
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Project name must be unique for this Startup.', response.data[0])
-        
+
+    @transaction.atomic
+    def test_ok_several_projects_created(self):
+        for i in range(2):
+            project_data = {
+                'name': f'Project{[i]}',
+                'description': f'Description{i}',
+                'duration': 12.0 + i,
+                'budget_currency': 'USD',
+                'budget_amount': 3000 + i
+            }
+            response = self.visit_endpoint(
+                'projects:project-list', 
+                self.tokens[self.user_startuper.email],
+                data = project_data
+            )
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Project.objects.count(), 3)
+
+    @transaction.atomic
+    def test_fail_create_empty_mandatory_field(self):
+        project_1_data = {
+            'name': '',
+            'description': 'Description'
+        }
+        project_2_data = {
+            'name': 'Project_2',
+            'description': '',
+        }
+        projects = [project_1_data, project_2_data]
+        for project in projects:
+            response = self.visit_endpoint(
+                    'projects:project-list', 
+                    self.tokens[self.user_startuper.email],
+                    data = project
+                )
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Project.objects.count(), 1)
+
+    # Group of test regarding updatesof a Project
+    @transaction.atomic
+    def test_ok_change_project_details(self):
+        fields = ['name', 'description', 'duration', 'budget_amount']
+        project = copy.deepcopy(self.project_test_data)
+        for field in fields:
+            suffix = '1' if isinstance(project[field], str) else 1
+            project[field] += suffix
+            response = self.visit_endpoint(
+                    'projects:project-detail', 
+                    self.tokens[self.user_startuper.email],
+                    'PUT',
+                    project,
+                    pk = 1
+                )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
