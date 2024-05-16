@@ -1,3 +1,5 @@
+import logging
+
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 
@@ -6,7 +8,10 @@ from communications.models import Room, Message
 
 @database_sync_to_async
 def get_room(room_name):
-    return Room.objects.get(name=room_name)
+    try:
+        return Room.objects.get(name=room_name)
+    except Room.DoesNotExist:
+        logging.error("Error: Failed to return Room.")
 
 
 @database_sync_to_async
