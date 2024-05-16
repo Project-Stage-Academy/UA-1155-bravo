@@ -30,5 +30,7 @@ urlpatterns = [
     path('investors/', include('investors.urls')),
     path('startups/', include('startups.urls')),
     path('projects/', include('projects.urls')),
+    path('subscriptions/', include('subscriptions.urls')),
     path('dashboard/', include('dashboard.urls')),
+    path('notifications/', include('notifications.urls'))
 ]
