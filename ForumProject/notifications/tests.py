@@ -1,14 +1,14 @@
+# from rest_framework.test import APITestCase
+# from django.core.exceptions import ObjectDoesNotExist
+# import random, string
+# from startups.models import Startup
 from django.test import TestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework.test import APITestCase
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-import random, string
 from users.models import UserRoleCompany, CustomUser, UserStartup, UserInvestor
-from startups.models import Startup
 from investors.models import Investor
 from projects.models import Project
 from .models import Notification
@@ -48,6 +48,20 @@ class NotificationsTestCase(TestCase):
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
         return client.post(reverse(url_name), data, format='json')
+
+    def get_notification_count(self, trigger):
+        """
+        Helper function to get the count of notifications based on trigger.
+        """
+        current_investor_id = UserRoleCompany.objects.get(user=self.users[1]).company_id
+        current_investor = Investor.objects.get(id=current_investor_id)
+        return Notification.objects.filter(
+            project=self.project,
+            startup=self.project.startup,
+            investor=current_investor,
+            trigger=trigger,
+            initiator='investor'
+        ).count()
 
     @classmethod
     @transaction.atomic
@@ -136,7 +150,6 @@ class NotificationsTestCase(TestCase):
         investor_role.company_id = UserInvestor.objects.get(customuser=cls.users[1]).investor.pk
         investor_role.save()
 
-
     def test_follow_project_creates_notification(self):
         """
         Test case to check if following a project creates a notification.
@@ -155,16 +168,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Check if a record is added to the Notification table
-        current_investor_id = UserRoleCompany.objects.get(user=self.users[1]).company_id
-        current_investor = Investor.objects.get(id=current_investor_id)
-        notifications_count = Notification.objects.filter(
-            project=self.project,
-            startup=self.project.startup,
-            investor=current_investor,
-            trigger='follower(s) list changed',
-            initiator='investor'
-        ).count()
-
+        notifications_count = self.get_notification_count('follower(s) list changed')
         self.assertEqual(notifications_count, 1)
 
     def test_unfollow_project_creates_notification(self):
@@ -189,17 +193,9 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Check if a record is added to the Notification table
-        current_investor_id = UserRoleCompany.objects.get(user=self.users[1]).company_id
-        current_investor = Investor.objects.get(id=current_investor_id)
-        notifications_count = Notification.objects.filter(
-            project=self.project,
-            startup=self.project.startup,
-            investor=current_investor,
-            trigger='follower(s) list changed',
-            initiator='investor'
-        ).count()
-
-        self.assertEqual(notifications_count, 1)
+        notifications_count = self.get_notification_count('follower(s) list changed')
+        self.assertEqual(notifications_count, 2)
+    #
 
     def test_subscription_creates_notification(self):
         """
@@ -218,17 +214,6 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Check if a record is added to the Notification table
-        current_investor_id = UserRoleCompany.objects.get(user=self.users[1]).company_id
-        current_investor = Investor.objects.get(id=current_investor_id)
-        notifications_count = Notification.objects.filter(
-            project=self.project,
-            startup=self.project.startup,
-            investor=current_investor,
-            trigger='subscription changed',
-            initiator='investor'
-        ).count()
+        notifications_count = self.get_notification_count('subscription changed')
 
         self.assertEqual(notifications_count, 1)
-
-
-
