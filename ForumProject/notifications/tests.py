@@ -150,73 +150,72 @@ class NotificationsTestCase(TestCase):
         investor_role.company_id = UserInvestor.objects.get(customuser=cls.users[1]).investor.pk
         investor_role.save()
 
-    # def test_follow_project_creates_notification(self):
-    #     """
-    #     Test case to check if following a project creates a notification.
-    #     """
-    #     # Authenticate the user with the token
-    #     self.client = APIClient()
-    #     self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
-    #
-    #     # Get endpoint to follow a project
-    #     self.url = reverse('projects:follow', kwargs={'project_id': self.project.id})
-    #
-    #     # Send a POST request to follow the project
-    #     response = self.client.post(self.url)
-    #
-    #     # Check if the request was successful (HTTP 201 Created)
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-    #
-    #     # Check if a record is added to the Notification table
-    #     notifications_count = self.get_notification_count('follower(s) list changed')
-    #     self.assertEqual(notifications_count, 1)
+    def test_follow_project_creates_notification(self):
+        """
+        Test case to check if following a project creates a notification.
+        """
+        # Authenticate the user with the token
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
 
-    # def test_unfollow_project_creates_notification(self):
-    #     """
-    #     Test case to check if unfollowing a project creates a notification.
-    #     """
-    #     # Authenticate the user with the token
-    #     self.client = APIClient()
-    #     self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
-    #
-    #     # Follow the project first to ensure there's something to unfollow
-    #     follow_url = reverse('projects:follow', kwargs={'project_id': self.project.id})
-    #     self.client.post(follow_url)
-    #
-    #     # Get endpoint to unfollow a project
-    #     unfollow_url = reverse('projects:delist_project', kwargs={'project_id': self.project.id})
-    #
-    #     # Send a POST request to unfollow the project
-    #     response = self.client.post(unfollow_url)
-    #
-    #     # Check if the request was successful (HTTP 200 OK)
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #
-    #     # Check if a record is added to the Notification table
-    #     notifications_count = self.get_notification_count('follower(s) list changed')
-    #     self.assertEqual(notifications_count, 2)
-    #
+        # Get endpoint to follow a project
+        self.url = reverse('projects:follow', kwargs={'project_id': self.project.id})
 
-    # def test_subscription_creates_notification(self):
-    #     """
-    #     Test case to check if offering a stake in the project creates a notification.
-    #     """
-    #     # Authenticate the investor
-    #     self.client = APIClient()
-    #     self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
-    #
-    #     # Offer a stake in the project
-    #     share = 50  # You can set any share value for testing purposes
-    #     offer_stake_url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
-    #     response = self.client.post(offer_stake_url)
-    #
-    #     # Check if the request was successful (HTTP 201 Created)
-    #     self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-    #
-    #     # Check if a record is added to the Notification table
-    #     notifications_count = self.get_notification_count('subscription changed')
-    #
-    #     self.assertEqual(notifications_count, 1)
+        # Send a POST request to follow the project
+        response = self.client.post(self.url)
+
+        # Check if the request was successful (HTTP 201 Created)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check if a record is added to the Notification table
+        notifications_count = self.get_notification_count('follower(s) list changed')
+        self.assertEqual(notifications_count, 1)
+
+    def test_unfollow_project_creates_notification(self):
+        """
+        Test case to check if unfollowing a project creates a notification.
+        """
+        # Authenticate the user with the token
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
+
+        # Follow the project first to ensure there's something to unfollow
+        follow_url = reverse('projects:follow', kwargs={'project_id': self.project.id})
+        self.client.post(follow_url)
+
+        # Get endpoint to unfollow a project
+        unfollow_url = reverse('projects:delist_project', kwargs={'project_id': self.project.id})
+
+        # Send a POST request to unfollow the project
+        response = self.client.post(unfollow_url)
+
+        # Check if the request was successful (HTTP 200 OK)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check if a record is added to the Notification table
+        notifications_count = self.get_notification_count('follower(s) list changed')
+        self.assertEqual(notifications_count, 2)
+
+    def test_subscription_creates_notification(self):
+        """
+        Test case to check if offering a stake in the project creates a notification.
+        """
+        # Authenticate the investor
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
+
+        # Offer a stake in the project
+        share = 50  # You can set any share value for testing purposes
+        offer_stake_url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
+        response = self.client.post(offer_stake_url)
+
+        # Check if the request was successful (HTTP 201 Created)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check if a record is added to the Notification table
+        notifications_count = self.get_notification_count('subscription changed')
+
+        self.assertEqual(notifications_count, 1)
 
     def test_turn_off_email_notifications(self):
         """
@@ -277,19 +276,18 @@ class NotificationsTestCase(TestCase):
         self.assertFalse(response.data['in_app_on_share_subscription'])
 
 
-    # def test_follow_project_rejected(self):
-    #     """
-    #     Test case to check if user[2] attempting to follow a project is rejected.
-    #     """
-    #     # Authenticate user[2] with the token
-    #     self.client = APIClient()
-    #     self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[2]}@user.com'])
-    #
-    #     # Get endpoint to follow a project
-    #     self.url = reverse('projects:follow', kwargs={'project_id': self.project.id})
-    #
-    #     # Send a POST request to follow the project
-    #     response = self.client.post(self.url)
-    #
-    #     # Check if the request was rejected (HTTP 403 Forbidden)
-    #     self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    def test_unauthorized_user_cannot_follow_project(self):
+        """
+        Test case to check if an unauthorized user cannot follow a project.
+        """
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[2]}@user.com'])
+
+        # Get endpoint to follow a project
+        url = reverse('projects:follow', kwargs={'project_id': self.project.id})
+
+        # Send a POST request to follow the project without authentication
+        response = self.client.post(url)
+
+        # Check if the request was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
