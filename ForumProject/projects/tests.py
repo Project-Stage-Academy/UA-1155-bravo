@@ -21,7 +21,7 @@ class ProjectsTestCase(TestCase):
     """
     
     @staticmethod
-    def visit_endpoint(url_name, token, method='POST', data={}, pk=None):
+    def visit_endpoint(url_name, token, method='POST', data={}, kwargs=None):
         """
         Helper function to make requests to API endpoints.
 
@@ -30,7 +30,7 @@ class ProjectsTestCase(TestCase):
             token (str): The JWT token for authentication.
             method (str): The HTTP method for the request (default is 'POST').
             data (dict): The request data (default is an empty dictionary).
-            pk (dict): Dictionary for kwargs that includes, but may be not limited to,
+            kwargs (dict): Dictionary for kwargs that includes, but may be not limited to,
                       the primary key of the object (default is None).
 
         Returns:
@@ -39,14 +39,14 @@ class ProjectsTestCase(TestCase):
         client = APIClient()
         client.credentials(HTTP_AUTHORIZATION='Bearer ' + token)
         if method.upper() == 'GET':
-            return client.get(reverse(url_name, kwargs={'pk': pk}), data, format='json')
+            return client.get(reverse(url_name, kwargs={'pk': kwargs}), data, format='json')
         elif method.upper() == 'PUT':
-            return client.put(reverse(url_name, kwargs={'pk': pk}), data, format='json')
+            return client.put(reverse(url_name, kwargs={'pk': kwargs}), data, format='json')
         elif method.upper() == 'DELETE':
-            return client.delete(reverse(url_name, kwargs=pk) if pk else 
+            return client.delete(reverse(url_name, kwargs=kwargs) if kwargs else 
                                  reverse(url_name), data, format='json')
         else:
-            return client.post(reverse(url_name, kwargs=pk) if pk else 
+            return client.post(reverse(url_name, kwargs=kwargs) if kwargs else 
                                reverse(url_name), data, format='json')
         
     @classmethod
@@ -66,7 +66,7 @@ class ProjectsTestCase(TestCase):
             f'projects:{action}',
             self.tokens[token_owner.email],
             'POST',
-            pk = pk
+            kwargs = pk
         )
     
     @staticmethod
@@ -253,7 +253,7 @@ class ProjectsTestCase(TestCase):
                     self.tokens[self.user_startuper.email],
                     'PUT',
                     project,
-                    pk = 2
+                    kwargs = 2
                 )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -270,7 +270,7 @@ class ProjectsTestCase(TestCase):
                     self.tokens[self.user_investor.email],
                     'PUT',
                     data_with_amended_description,
-                    pk = self.project_create_response.data['id']
+                    kwargs = self.project_create_response.data['id']
                 )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -280,7 +280,7 @@ class ProjectsTestCase(TestCase):
             'projects:project-detail', 
             self.tokens[self.user_investor.email],
             'GET',
-            pk = self.project_create_response.data['id']
+            kwargs = self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -289,21 +289,21 @@ class ProjectsTestCase(TestCase):
             'projects:project-detail', 
             self.tokens[self.user_startuper.email],
             'GET',
-            pk = self.project_create_response.data['id']
+            kwargs = self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_fail_stranger_user_access(self):
         user_alien = self.alien_user()
         token = ''
-        for i in range(2):
+        for i in range(3):
             if i == 1:
                 refresh = RefreshToken.for_user(user_alien)
                 token = str(refresh.access_token)
             if i == 2:
                 UserRoleCompany.objects.create(user=user_alien, role='startup')
-            response = self.visit_endpoint('projects:project-detail', token, 'GET',pk=1)
-            if i == 1:
+            response = self.visit_endpoint('projects:project-detail', token, 'GET', kwargs=1)
+            if i:
                 self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
             else:
                 self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -324,7 +324,7 @@ class ProjectsTestCase(TestCase):
             'projects:project-detail', 
             self.tokens[self.user_startuper.email],
             'DELETE',
-            pk = {'pk': local_project.data['id']}
+            kwargs = {'pk': local_project.data['id']}
         )
         self.assertEqual(Project.objects.count(), 1)
         self.assertFalse(Project.objects.filter(name=local_project_data['name']))
@@ -335,7 +335,7 @@ class ProjectsTestCase(TestCase):
             'projects:project-detail', 
             self.tokens[self.user_investor.email],
             'DELETE',
-            pk = {'pk': self.startup_test.pk}
+            kwargs = {'pk': self.startup_test.pk}
         )
         self.assertEqual(Project.objects.count(), 1)
         self.assertEqual(deletion_response.status_code, status.HTTP_403_FORBIDDEN)
@@ -345,7 +345,7 @@ class ProjectsTestCase(TestCase):
             'projects:project-detail', 
             self.tokens[self.user_startuper.email],
             'DELETE',
-            pk = {'pk': 1000}
+            kwargs = {'pk': 1000}
         )
         self.assertEqual(Project.objects.count(), 1)
         self.assertEqual(deletion_response.status_code, status.HTTP_404_NOT_FOUND)
@@ -429,7 +429,7 @@ class ProjectsTestCase(TestCase):
             'projects:view_logs', 
             self.tokens[self.user_startuper.email],
             'GET',
-            pk = self.project_create_response.data['id']
+            kwargs = self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -438,6 +438,6 @@ class ProjectsTestCase(TestCase):
             'projects:view_logs', 
             self.tokens[self.user_investor.email],
             'GET',
-            pk = self.project_create_response.data['id']
+            kwargs = self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
