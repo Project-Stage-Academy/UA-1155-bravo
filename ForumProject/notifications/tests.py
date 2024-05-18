@@ -1,7 +1,3 @@
-# from rest_framework.test import APITestCase
-# from django.core.exceptions import ObjectDoesNotExist
-# import random, string
-# from startups.models import Startup
 from django.test import TestCase
 from django.urls import reverse
 from django.db import transaction
@@ -206,8 +202,8 @@ class NotificationsTestCase(TestCase):
 
         # Offer a stake in the project
         share = 50  # You can set any share value for testing purposes
-        offer_stake_url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
-        response = self.client.post(offer_stake_url)
+        url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
+        response = self.client.post(url)
 
         # Check if the request was successful (HTTP 201 Created)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -275,7 +271,6 @@ class NotificationsTestCase(TestCase):
         self.assertFalse(response.data['in_app_on_followers_change'])
         self.assertFalse(response.data['in_app_on_share_subscription'])
 
-
     def test_unauthorized_user_cannot_follow_project(self):
         """
         Test case to check if an unauthorized user cannot follow a project.
@@ -285,6 +280,23 @@ class NotificationsTestCase(TestCase):
 
         # Get endpoint to follow a project
         url = reverse('projects:follow', kwargs={'project_id': self.project.id})
+
+        # Send a POST request to follow the project without authentication
+        response = self.client.post(url)
+
+        # Check if the request was unsuccessful
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_unauthorized_user_cannot_subscribe_project(self):
+        """
+        Test case to check if an unauthorized user cannot subscribe a project.
+        """
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[2]}@user.com'])
+
+        # Get endpoint to follow a project
+        share = 50
+        url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
 
         # Send a POST request to follow the project without authentication
         response = self.client.post(url)
