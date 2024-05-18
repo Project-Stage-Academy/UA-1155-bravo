@@ -4,7 +4,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from django.test import TestCase
 from startups.models import Startup
-from users.models import CustomUser
+from investors.models import Investor
+from users.models import CustomUser, UserStartup, UserRoleCompany, UserInvestor
 import random, string
 from django.db import transaction
 from rest_framework.test import APITestCase
@@ -31,6 +32,18 @@ class StartupCreationTestCase(TestCase):
         # Get JWT token for the user
         refresh = RefreshToken.for_user(cls.user)
         cls.token = str(refresh.access_token)
+
+        cls.investor_user = CustomUser.objects.create_user(
+                        email='investor@example.com',
+                        first_name='Investor',
+                        last_name='User',
+                        phone_number='+3801234567',
+                        password='password',
+                        is_active=True
+                )
+
+        refresh_investor = RefreshToken.for_user(cls.investor_user)
+        cls.investor_token = str(refresh_investor.access_token)
     
     
     def setUp(self):
@@ -39,31 +52,75 @@ class StartupCreationTestCase(TestCase):
         '''
         # Set up the test client and authenticate with the token
         self.client = APIClient()
+
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+
+        # Sample data for testing
+        self.startup = Startup.objects.create(startup_name='Django startups',
+                                              startup_industry='IT',
+                                              startup_phone='+3801234567',
+                                              startup_country='UA',
+                                              startup_city='Lviv',
+                                              startup_address='I Franka 123')
+        
+        UserStartup.objects.create(customuser=self.user, startup=self.startup, startup_role_id=1)
+        UserRoleCompany.objects.create(user=self.user, role='startup', company_id=self.startup.id)
+        
 
         # Sample data for testing
         self.startup_data = {
             'startup_name': 'Django Dribblers',
             'startup_industry': 'IT',
-            'startup_phone': '+3801234567',
+            'startup_phone': '+3801234562',
             'startup_country': 'UA',
             'startup_city': 'Lviv',
             'startup_address': 'I Franka 123'
         }
     
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
+        
+        # Create investor profile
+        self.investor_profile = Investor.objects.create(
+            investor_name='Test Investor',
+            investor_industry='IT',
+            investor_phone='+3801234567',
+            investor_country='UA',
+            investor_city='Test City',
+            investor_address='Test Address'
+        )
+        
+        # Associate investor profile with investor user and assign role
+        UserInvestor.objects.create(customuser=self.investor_user, investor=self.investor_profile, investor_role_id=1)
+        UserRoleCompany.objects.create(user=self.investor_user, role='investor', company_id=self.investor_profile.id)
+
+
+    def tearDown(self):
+        '''
+        Teardown that is executed after each test case.
+        '''
+        CustomUser.objects.all().delete()
+        Investor.objects.all().delete()
+        Startup.objects.all().delete()
+        UserInvestor.objects.all().delete()
+        UserStartup.objects.all().delete()
+        UserRoleCompany.objects.all().delete()
+        
     
-    def create_startup(self, data):
+    def create_startup(self, startup_data):
         '''
         Helper method to create a Startup with given data.
         '''
-        return self.client.post(reverse('startups:startup-add'), data, format='json')
+        url = reverse('startups:startup-add')
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        created = self.client.post(url, startup_data, format='json')
+        return created
     
     
-    def assert_failure(self, data, expected_objects=0):
+    def assert_failure(self, startup_data, expected_objects=1):
         '''
         Helper method to verify the Startup creation fails as expected
         '''
-        response = self.create_startup(data)
+        response = self.create_startup(startup_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Startup.objects.count(), expected_objects)
 
@@ -73,8 +130,8 @@ class StartupCreationTestCase(TestCase):
         '''
         response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Startup.objects.count(), 1)
-        self.assertEqual(Startup.objects.first().startup_name, 'Django Dribblers')
+        self.assertEqual(Startup.objects.count(), 2) #created in SetUp and in test exsists 
+        self.assertEqual(Startup.objects.all()[1].startup_name, 'Django Dribblers')
 
     @transaction.atomic
     def test_ok_create_two_startups(self):
@@ -84,13 +141,13 @@ class StartupCreationTestCase(TestCase):
         # Create first Startup
         response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Startup.objects.count(), 1)
+        self.assertEqual(Startup.objects.count(), 2)
         
         # Create second Startup
         self.startup_data['startup_name'] = 'Python catchers'
         response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Startup.objects.count(), 2)
+        self.assertEqual(Startup.objects.count(), 3)
 
         self.assertEqual(Startup.objects.filter(startup_name='Django Dribblers').exists(), True)
         self.assertEqual(Startup.objects.filter(startup_name='Python catchers').exists(), True)
@@ -105,11 +162,11 @@ class StartupCreationTestCase(TestCase):
         Startup.objects.create(**self.startup_data)
         
         # Attempt to create a Startup with the same name
-        self.assert_failure(self.startup_data, 1)
+        self.assert_failure(self.startup_data, 2) #created in SetUp and in test exsists 
 
         # Attempt to create a Startup with the same name AND leading whitespaces
         self.startup_data['startup_name'] = '  ' + self.startup_data['startup_name']
-        self.assert_failure(self.startup_data, 1)
+        self.assert_failure(self.startup_data, 2) #created in SetUp and in test exsists, with name '  ' doesnt
 
     @transaction.atomic
     def test_fail_field_length_exceeded(self):
@@ -176,9 +233,9 @@ class StartupCreationTestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
         response = self.client.post(url, self.startup_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Startup.objects.count(), 1)
+        self.assertEqual(Startup.objects.count(), 2)
         
-       
+
     def test_create_startup_missing_fields(self):
         '''
         Test creating a new startup with missing fields via API.
@@ -194,7 +251,7 @@ class StartupCreationTestCase(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
         response = self.client.post(url, incomplete_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assertEqual(Startup.objects.count(), 1)  #only startup created in SetUp
 
 
 
@@ -203,41 +260,59 @@ class StartupCreationTestCase(TestCase):
         Test deleting a startup via API.
         '''
         # Create a startup
-        startup = Startup.objects.create(**self.startup_data)
-
-        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
+        self.created_startup = Startup.objects.create(**self.startup_data)
+        UserStartup.objects.create(customuser=self.user, startup=self.created_startup, startup_role_id=1)
+        url = reverse('startups:startup-detail', kwargs={'pk': self.created_startup.pk})
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assertEqual(Startup.objects.count(), 1) #Only created in SetUp exsist 
         
 
     def test_delete_startup_with_closed_projects(self):
         '''
         Test deleting a startup with closed projects via API.
         '''
-        startup = Startup.objects.create(**self.startup_data)
+        self.startup = Startup.objects.create(**self.startup_data)
+        UserStartup.objects.create(customuser=self.user, startup=self.startup, startup_role_id=1)
         # Create a closed project associated with the startup
-        Project.objects.create(startup=startup, project_name='Closed Project', project_status='closed')
-        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk}) 
+        # Project.objects.create(startup=startup, project_name='Closed Project', project_status='closed')
+        Project.objects.create(
+                startup=self.startup,
+                name='Closed Project',
+                status='closed',
+                description='Description of the project',
+                duration=6,  
+                budget_currency='USD',
+                budget_amount=5000
+            )
+        url = reverse('startups:startup-detail', kwargs={'pk': self.startup.pk}) 
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Startup.objects.count(), 0)
+        self.assertEqual(Startup.objects.count(), 1) #Only created in SetUp exsist 
 
 
     def test_delete_startup_with_open_projects(self):
         '''
         Test deleting a startup with open projects via API.
         '''
-        startup = Startup.objects.create(**self.startup_data)
+        self.startup = Startup.objects.create(**self.startup_data)
         # Create an open project associated with the startup
-        Project.objects.create(startup=startup, project_name='Open Project', project_status='open')
-        url = reverse('startups:startup-detail', kwargs={'pk': startup.pk})
+        Project.objects.create(
+                startup=self.startup,
+                name='Open Project',
+                status='open',
+                description='Description of the project',
+                duration=6,  
+                budget_currency='USD',
+                budget_amount=5000
+            )
+        url = reverse('startups:startup-detail', kwargs={'pk': self.startup.pk})
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(Startup.objects.count(), 1)  
+        self.assertEqual(Startup.objects.count(), 2)  #created in SetUp and in test exsists 
         
          
         
@@ -264,7 +339,7 @@ class StartupCreationTestCase(TestCase):
         
 
         url = reverse('startups:startup-search') + '?search=Test'
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
@@ -293,7 +368,7 @@ class StartupCreationTestCase(TestCase):
                                 startup_address='123 Main St')
 
         url = reverse('startups:startup-list') + '?startup_name=&startup_industry=&project_status=&startup_country=US'  
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 4)  
@@ -314,14 +389,14 @@ class StartupCreationTestCase(TestCase):
         
 
         url = reverse('startups:startup-list')
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 10)  
 
 
         url = reverse('startups:startup-list') + '?page_size=5'
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 5)  
@@ -349,13 +424,41 @@ class StartupViewSetTestCase(APITestCase):
         # Get JWT token for the user
         refresh = RefreshToken.for_user(cls.user)
         cls.token = str(refresh.access_token)   
+        
+        cls.investor_user = CustomUser.objects.create_user(
+                    email='investor@example.com',
+                    first_name='Investor',
+                    last_name='User',
+                    phone_number='+3801234567',
+                    password='password',
+                    is_active=True
+            )
 
+        refresh_investor = RefreshToken.for_user(cls.investor_user)
+        cls.investor_token = str(refresh_investor.access_token)
+        
     def setUp(self):
         '''
         Setup that is executed before each test case.
         '''
-        # Set up the test client and authenticate with the token
         self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
+        
+        # Create investor profile
+        self.investor_profile = Investor.objects.create(
+            investor_name='Test Investor',
+            investor_industry='IT',
+            investor_phone='+3801234567',
+            investor_country='UA',
+            investor_city='Test City',
+            investor_address='Test Address'
+        )
+        
+        # Associate investor profile with investor user and assign role
+        UserInvestor.objects.create(customuser=self.investor_user, investor=self.investor_profile, investor_role_id=1)
+        UserRoleCompany.objects.create(user=self.investor_user, role='investor', company_id=self.investor_profile.id)
+        # Set up the test client and authenticate with the token
+        
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.token)
 
         # Sample data for testing
@@ -365,14 +468,31 @@ class StartupViewSetTestCase(APITestCase):
                                               startup_country='UA',
                                               startup_city='Lviv',
                                               startup_address='I Franka 123')
-
+        
+        UserStartup.objects.create(customuser=self.user, startup=self.startup, startup_role_id=1)
+        UserRoleCompany.objects.create(user=self.user, role='startup', company_id=self.startup.id)
+        
+    def tearDown(self):
+        '''
+        Teardown that is executed after each test case.
+        '''
+        CustomUser.objects.all().delete()
+        Investor.objects.all().delete()
+        Startup.objects.all().delete()
+        UserInvestor.objects.all().delete()
+        UserStartup.objects.all().delete()
+        UserRoleCompany.objects.all().delete()
+        
 
     def test_retrieve_startup_list(self):
         '''
         Test retrieving the list of startups
         '''        
         # Checking availability of the startup list
-        response = self.client.get(reverse('startups:startup-list'))
+        retrieve_startup_list = reverse('startups:startup-list')
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
+        response = self.client.get(retrieve_startup_list)
+        
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Startup.objects.count(), 1)
     

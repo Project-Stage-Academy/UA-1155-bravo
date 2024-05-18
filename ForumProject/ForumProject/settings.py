@@ -34,6 +34,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'communications.apps.CommunicationsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -45,14 +47,13 @@ INSTALLED_APPS = [
     'notifications',
     'startups',
     'projects',
-    'communications',
     'dashboard',
     'subscriptions',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
-
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -85,6 +86,15 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'ForumProject.wsgi.application'
+ASGI_APPLICATION = 'ForumProject.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 
 # Database
