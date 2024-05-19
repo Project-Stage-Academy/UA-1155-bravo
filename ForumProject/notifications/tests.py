@@ -8,6 +8,7 @@ from users.models import UserRoleCompany, CustomUser, UserStartup, UserInvestor
 from investors.models import Investor
 from projects.models import Project
 from .models import Notification
+from .tests_constants import get_urls, EXPECTED_STATUS
 
 
 class NotificationsTestCase(TestCase):
@@ -125,6 +126,7 @@ class NotificationsTestCase(TestCase):
             cls.tokens[f'{cls.actors[0]}@user.com']
         )
         cls.project = Project.objects.get(id=project_response.data['id'])
+        cls.urls = get_urls(cls.project.id)
 
         # Create Investor company
         investor_data = {
@@ -146,22 +148,29 @@ class NotificationsTestCase(TestCase):
         investor_role.company_id = UserInvestor.objects.get(customuser=cls.users[1]).investor.pk
         investor_role.save()
 
+    def setUp(self):
+        """
+        Setup that is executed before each test case.
+        """
+        self.client = APIClient()
+
+    def authenticate(self, actor_index):
+        """
+        Helper method to set the credentials for a specific user.
+        """
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[actor_index]}@user.com'])
+
     def test_follow_project_creates_notification(self):
         """
         Test case to check if following a project creates a notification.
         """
-        # Authenticate the user with the token
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
-
-        # Get endpoint to follow a project
-        self.url = reverse('projects:follow', kwargs={'project_id': self.project.id})
+        self.authenticate(1)  # Authenticate as investor company
 
         # Send a POST request to follow the project
-        response = self.client.post(self.url)
+        response = self.client.post(self.urls['FOLLOW_URL'])
 
         # Check if the request was successful (HTTP 201 Created)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, EXPECTED_STATUS['CREATED'])
 
         # Check if a record is added to the Notification table
         notifications_count = self.get_notification_count('follower(s) list changed')
@@ -171,22 +180,16 @@ class NotificationsTestCase(TestCase):
         """
         Test case to check if unfollowing a project creates a notification.
         """
-        # Authenticate the user with the token
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
+        self.authenticate(1)  # Authenticate as investor company
 
         # Follow the project first to ensure there's something to unfollow
-        follow_url = reverse('projects:follow', kwargs={'project_id': self.project.id})
-        self.client.post(follow_url)
-
-        # Get endpoint to unfollow a project
-        unfollow_url = reverse('projects:delist_project', kwargs={'project_id': self.project.id})
+        self.client.post(self.urls['FOLLOW_URL'])
 
         # Send a POST request to unfollow the project
-        response = self.client.post(unfollow_url)
+        response = self.client.post(self.urls['UNFOLLOW_URL'])
 
         # Check if the request was successful (HTTP 200 OK)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
 
         # Check if a record is added to the Notification table
         notifications_count = self.get_notification_count('follower(s) list changed')
@@ -196,17 +199,13 @@ class NotificationsTestCase(TestCase):
         """
         Test case to check if offering a stake in the project creates a notification.
         """
-        # Authenticate the investor
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[1]}@user.com'])
+        self.authenticate(1)  # Authenticate as investor company
 
         # Offer a stake in the project
-        share = 50  # You can set any share value for testing purposes
-        url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
-        response = self.client.post(url)
+        response = self.client.post(self.urls['SUBSCRIPTION_URL'])
 
         # Check if the request was successful (HTTP 201 Created)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, EXPECTED_STATUS['CREATED'])
 
         # Check if a record is added to the Notification table
         notifications_count = self.get_notification_count('subscription changed')
@@ -217,17 +216,14 @@ class NotificationsTestCase(TestCase):
         """
         Test turning off email notifications.
         """
-        # Authenticate the user with the token
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[0]}@user.com'])
+        self.authenticate(0)  # Authenticate as startup
 
-        url = reverse('notifications:notification_detail')
         data = {
             'email_on_followers_change': False,
             'email_on_share_subscription': False,
         }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
+        self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
         self.assertFalse(response.data['email_on_followers_change'])
         self.assertFalse(response.data['email_on_share_subscription'])
 
@@ -235,17 +231,14 @@ class NotificationsTestCase(TestCase):
         """
         Test turning off in-app notifications.
         """
-        # Authenticate the user with the token
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[0]}@user.com'])
+        self.authenticate(0)  # Authenticate as startup
 
-        url = reverse('notifications:notification_detail')
         data = {
             'in_app_on_followers_change': False,
             'in_app_on_share_subscription': False,
         }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
+        self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
         self.assertFalse(response.data['in_app_on_followers_change'])
         self.assertFalse(response.data['in_app_on_share_subscription'])
 
@@ -253,19 +246,16 @@ class NotificationsTestCase(TestCase):
         """
         Test turning off all notifications.
         """
-        # Authenticate the user with the token
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[0]}@user.com'])
+        self.authenticate(0)  # Authenticate as startup
 
-        url = reverse('notifications:notification_detail')
         data = {
             'email_on_followers_change': False,
             'email_on_share_subscription': False,
             'in_app_on_followers_change': False,
             'in_app_on_share_subscription': False,
         }
-        response = self.client.put(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
+        self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
         self.assertFalse(response.data['email_on_followers_change'])
         self.assertFalse(response.data['email_on_share_subscription'])
         self.assertFalse(response.data['in_app_on_followers_change'])
@@ -275,31 +265,22 @@ class NotificationsTestCase(TestCase):
         """
         Test case to check if an unauthorized user cannot follow a project.
         """
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[2]}@user.com'])
-
-        # Get endpoint to follow a project
-        url = reverse('projects:follow', kwargs={'project_id': self.project.id})
+        self.authenticate(2)  # Non-login user
 
         # Send a POST request to follow the project without authentication
-        response = self.client.post(url)
+        response = self.client.post(self.urls['FOLLOW_URL'])
 
         # Check if the request was unsuccessful
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, EXPECTED_STATUS['FORBIDDEN'])
 
     def test_unauthorized_user_cannot_subscribe_project(self):
         """
         Test case to check if an unauthorized user cannot subscribe a project.
         """
-        self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[2]}@user.com'])
-
-        # Get endpoint to follow a project
-        share = 50
-        url = reverse('projects:subscription', kwargs={'project_id': self.project.id, 'share': share})
+        self.authenticate(2)  # Non-login user
 
         # Send a POST request to follow the project without authentication
-        response = self.client.post(url)
+        response = self.client.post(self.urls['SUBSCRIPTION_URL'])
 
         # Check if the request was unsuccessful
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, EXPECTED_STATUS['FORBIDDEN'])
