@@ -5,7 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from django.db import transaction
-import copy
+import copy, random, string
 from users.models import UserRoleCompany, CustomUser, UserStartup, UserInvestor
 from startups.models import Startup
 from investors.models import Investor
@@ -18,8 +18,7 @@ class ProjectsTestCase(TestCase):
 
     This class provides test cases for creating, updating, viewing, and deleting projects,
     as well as for following and subscribing to projects.
-    """
-    
+    """    
     @staticmethod
     def visit_endpoint(url_name, token, method='POST', data={}, kwargs=None):
         """
@@ -50,7 +49,7 @@ class ProjectsTestCase(TestCase):
                                reverse(url_name), data, format='json')
         
     @classmethod
-    def follow_or_subscribe(self, token_owner, pk, action='follow'):
+    def follow_or_subscribe(cls, token_owner, pk, action='follow'):
         """
         Helper function to follow, unfollow from, or subscribe to, a project.
 
@@ -62,27 +61,67 @@ class ProjectsTestCase(TestCase):
         Returns:
             Response: The response object returned by the API.
         """
-        return self.visit_endpoint(
+        return cls.visit_endpoint(
             f'projects:{action}',
-            self.tokens[token_owner.email],
+            cls.tokens[token_owner.email],
             'POST',
             kwargs = pk
         )
     
     @staticmethod
-    def alien_user():
+    def random_string(length=10):
         """
-        Helper function to create an alien user for testing purposes.
+        Generates a random string of specified length.
+
+        Args:
+            length (int): Length of the generated string.
+
+        Returns:
+            str: Randomly generated string.
+        """
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    
+    @classmethod
+    def random_email(cls, length=1):
+        """
+        Generates a random email address.
+
+        Args:
+            length (int): Length of the random part of the email address.
+
+        Returns:
+            str: Randomly generated email address.
+        """
+        return f'{cls.random_string(length)}@user.com'
+    
+    @staticmethod
+    def max_length(field):
+        """
+        Gets the maximum length of a model field.
+
+        Args:
+            field (str): The field name.
+
+        Returns:
+            int: Maximum length of the field.
+        """
+        return CustomUser._meta.get_field(field).max_length
+
+    
+    @classmethod
+    def create_user(cls):
+        """
+        Helper function to create a user for testing purposes.
 
         Returns:
             CustomUser: The created user object.
         """
         return CustomUser.objects.create_user(
-            email='user_alien@user.com',
-            first_name='User',
-            last_name='Alien',
-            phone_number='+3806669966',
-            password='-Qwerty-3',
+            first_name=cls.random_string(cls.max_length('first_name')),
+            last_name=cls.random_string(cls.max_length('last_name')),
+            email=cls.random_email(cls.max_length('email') - len('@user.com')),
+            phone_number=f'+380{random.randint(1000000, 9999999)}',
+            password=cls.random_string(random.randint(10, 20)),
             is_active=True
         )
     
@@ -97,15 +136,7 @@ class ProjectsTestCase(TestCase):
         """
         cls.tokens = {}
 
-        # Create a user who will represent Startup and have him logged in
-        cls.user_startuper = CustomUser.objects.create_user(
-            email='startuper@user.com',
-            first_name='John',
-            last_name='Doe',
-            phone_number='+3801234567890',
-            password='-Qwerty-1',
-            is_active=True
-        )
+        cls.user_startuper = cls.create_user()
         refresh = RefreshToken.for_user(cls.user_startuper)
         cls.tokens[cls.user_startuper.email] = str(refresh.access_token)
         
@@ -123,15 +154,7 @@ class ProjectsTestCase(TestCase):
         startuper_role.company_id = cls.startup_test.pk
         startuper_role.save()
         
-        # Create a user who will represent InvestCo and have him logged in
-        cls.user_investor = CustomUser.objects.create_user(
-            email='investor@user.com',
-            first_name='Jane',
-            last_name='Doe',
-            phone_number='+380445554433',
-            password='-Qwerty-2',
-            is_active=True
-        )
+        cls.user_investor = cls.create_user()
         refresh = RefreshToken.for_user(cls.user_investor)
         cls.tokens[cls.user_investor.email] = str(refresh.access_token)
         
@@ -294,7 +317,7 @@ class ProjectsTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_fail_stranger_user_access(self):
-        user_alien = self.alien_user()
+        user_alien = self.create_user()
         token = ''
         for i in range(3):
             if i == 1:
