@@ -16,6 +16,7 @@ class Startup(models.Model):
         startup_city (str): The city where the startup is located.
         startup_address (str): The address of the startup.
         startup_logo (ImageField): The logo of the startup.
+        startup_prefs (str): A string containing notification preferences separated by commas.
     """
     
     startup_name = models.CharField(max_length=150, unique=True) 
