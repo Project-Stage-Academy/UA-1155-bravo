@@ -3,13 +3,19 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from django.core.signing import BadSignature
 from .models import Room, Message
+from django_ratelimit.decorators import ratelimit
 import logging
+from django.http import JsonResponse
+
+
+
 
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
 
 @login_required
+@ratelimit(key='user', rate='5/m', block=True)
 def index_view(request):
     users = User.objects.exclude(id=request.user.id)
     rooms_list = Room.objects.filter(name__contains=str(request.user.id))
@@ -22,6 +28,7 @@ def index_view(request):
 
 
 @login_required
+@ratelimit(key='user', rate='5/m', block=True)
 def room_view(request, user_id):
     try:
         user = get_object_or_404(User, id=user_id)
@@ -42,3 +49,17 @@ def room_view(request, user_id):
         'room': chat_room, 'users_messages': users_messages
     })
     
+    
+@login_required
+@ratelimit(key='user', rate='5/m', block=True)
+def send_message(request):
+    try:
+        logger.info(f'Message sent by user {request.user.email}')
+        return JsonResponse({'status': 'Message sent'})
+    except Exception as e:
+        logger.error(f'Error sending message: {str(e)}')
+        return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
+    
+
+def too_many_requests(request, exception):
+    return JsonResponse({'status': 'error', 'message': 'Too many requests'}, status=429)

@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'django_filters',
     'channels',
     'django_cryptography',
+    'django_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'users.middleware.JWTAuthMiddleware',
+    'django_ratelimit.middleware.RatelimitMiddleware',
 ]
 
 ROOT_URLCONF = 'ForumProject.urls'
@@ -267,11 +269,23 @@ EMAIL_PORT = config('EMAIL_PORT')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS')
 
 
-from cryptography.fernet import Fernet
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+
 
 
 CRYPTOGRAPHY_KEY = config('CRYPTOGRAPHY_KEY')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',  
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+RATELIMIT_VIEW = 'communications.views.too_many_requests'
+
 
 
 try:
