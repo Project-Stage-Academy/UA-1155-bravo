@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
-    'channels'
+    'channels',
+    'django_cryptography',
 ]
 
 MIDDLEWARE = [
@@ -164,7 +165,7 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',  
+            'formatter': 'verbose',
         },
         'file': {
             'class': 'logging.FileHandler',
@@ -265,7 +266,15 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = config('EMAIL_PORT')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS')
 
-# try:
-#     from .local_settings import *
-# except ImportError:
-#     pass
+
+from cryptography.fernet import Fernet
+from base64 import urlsafe_b64encode, urlsafe_b64decode
+
+
+CRYPTOGRAPHY_KEY = config('CRYPTOGRAPHY_KEY')
+
+
+try:
+    from .local_settings import *
+except ImportError:
+    pass
