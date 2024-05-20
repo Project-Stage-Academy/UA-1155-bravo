@@ -515,6 +515,8 @@ logging-modules=logging
 
 [MASTER]
 load-plugins=pylint_django
+# Valid values: yes, y, true, no, n, false
+init-import = no  # Ensure this line has a valid value
 
 
 
