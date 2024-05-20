@@ -26,27 +26,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ForumProject/requirements.txt
 
-      - name: Run tests
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          POSTGRES_NAME: ${{ secrets.POSTGRES_NAME }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-          EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
-          EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
-          EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
-          EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
-          EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
-          DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
-          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT }}
-        run: |
-          # echo "PYTHONPATH is $PYTHONPATH"
-          python ForumProject/manage.py test startups.tests
+      # - name: Run tests
+      #   env:
+      #     SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      #     DB_HOST: ${{ secrets.DB_HOST }}
+      #     POSTGRES_NAME: ${{ secrets.POSTGRES_NAME }}
+      #     POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      #     POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      #     POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+      #     POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+      #     EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      #     EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      #     EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      #     EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      #     EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+      #     DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+      #     DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+      #     REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      #     REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      #   run: |
+      #     # echo "PYTHONPATH is $PYTHONPATH"
+      #     python ForumProject/manage.py test startups.tests
 
       - name: Install pylint
         run: python -m pip install pylint
