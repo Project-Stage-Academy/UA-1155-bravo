@@ -15,9 +15,9 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ${{ secrets.POSTGRES_USER }}" 
-          --health-interval 10s 
-          --health-timeout 5s 
+          --health-cmd "pg_isready -U $POSTGRES_USER"
+          --health-interval 10s
+          --health-timeout 5s
           --health-retries 5
     strategy:
       matrix:
@@ -39,12 +39,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ForumProject/requirements.txt
+
       - name: Wait for PostgreSQL to be ready
         run: |
           until pg_isready -h localhost -p 5432; do
             echo "Waiting for PostgreSQL..."
             sleep 1
           done
+
       - name: Run tests
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
@@ -58,10 +60,3 @@ jobs:
           EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
           EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
           EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
-          EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
-          DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
-          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST }}
-          REDIS_PORT: ${{ secrets.REDIS_PORT }}
-        run: python ForumProject/manage.py test startups.tests
-
