@@ -49,8 +49,8 @@ jobs:
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DB_HOST: localhost
-          POSTGRES_NAME: ${{ secrets.POSTGRES_NAME }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_NAME: postgres
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
@@ -63,4 +63,8 @@ jobs:
           DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
-        run: python ForumProject/manage.py test startups.tests
+        run: |
+          echo "POSTGRES_NAME: $POSTGRES_NAME"
+          echo "POSTGRES_USER: $POSTGRES_USER"
+          echo "POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
+          python ForumProject/manage.py test startups.tests
