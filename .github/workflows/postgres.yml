@@ -63,4 +63,6 @@ jobs:
           DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
           REDIS_HOST: ${{ secrets.REDIS_HOST }}
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
-        run: python ForumProject/manage.py test 
+        run: |
+          cd ForumProject
+          python manage.py test 
