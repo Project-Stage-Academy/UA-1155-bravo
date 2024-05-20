@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y curl && apt-get clean
 ADD https://github.com/jwilder/dockerize/releases/download/v0.7.0/dockerize-alpine-linux-amd64-v0.7.0.tar.gz /app/dockerize.tar.gz
 RUN tar -C /app -xzf /app/dockerize.tar.gz && rm /app/dockerize.tar.gz
 
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["/app/dockerize", "-wait", "tcp://postgres_lib:5432", "-timeout", "60s", "python3", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["/app/entrypoint.sh"]
