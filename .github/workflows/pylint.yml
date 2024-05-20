@@ -42,8 +42,8 @@ jobs:
           EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
           DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
           DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
-          REDIS_HOST: 'redis'
-          REDIS_PORT: 6379
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
         run: |
           # echo "PYTHONPATH is $PYTHONPATH"
           python ForumProject/manage.py test startups.tests
