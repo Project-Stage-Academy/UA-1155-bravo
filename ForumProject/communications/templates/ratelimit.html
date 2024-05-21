@@ -1,0 +1,42 @@
+
+
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request limit exceeded</title>
+    <body>
+        <div class="message-box">
+            <h1>Request limit exceeded</h1>
+            <p>Too many requests. Try again later.</p>
+        </div>
+    </body>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f8d7da;
+            color: #721c24;
+            font-family: Arial, sans-serif;
+        }
+        .message-box {
+            text-align: center;
+            border: 1px solid #f5c6cb;
+            background-color: #f8d7da;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .message-box h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .message-box p {
+            font-size: 18px;
+        }
+    </style>
+</head>
