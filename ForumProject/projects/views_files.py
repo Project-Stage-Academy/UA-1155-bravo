@@ -1,13 +1,14 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 import os
+from django.db.models.signals import post_save
+from .signals import create_update_project_file_log
 from .models import Project, ProjectFiles
 from .serializers import ProjectFilesSerializer
 
-from users.permissions import (IsProjectMember)
+from users.permissions import IsProjectMember
 
 class ProjectFilesViewSet(viewsets.ModelViewSet):
     '''
@@ -140,6 +141,7 @@ class ProjectFilesViewSet(viewsets.ModelViewSet):
         # Get all ProjectFiles related to this project
         project_files = ProjectFiles.objects.filter(project=project_instance)
 
+        post_save.disconnect(create_update_project_file_log, sender=ProjectFiles)
         # Delete the corresponding files from the server
         for project_file in project_files:
             if project_file.file:
@@ -147,11 +149,12 @@ class ProjectFilesViewSet(viewsets.ModelViewSet):
         
         # Delete all ProjectFiles instances from the database
         project_files.delete()
+        post_save.connect(create_update_project_file_log, sender=ProjectFiles)
 
         return Response({"message": "All files deleted successfully"}, status=status.HTTP_200_OK)
     
 
-@api_view(['GET', 'DELETE'])
+@api_view(['GET', 'DELETE', 'PUT'])
 @permission_classes([IsProjectMember])
 def project_file(request, pk, projectfiles_id):
     '''
@@ -188,12 +191,29 @@ def project_file(request, pk, projectfiles_id):
             return Response({"error": "File does not exist"}, status=status.HTTP_404_NOT_FOUND)
         
     elif request.method == 'DELETE':
+        post_save.disconnect(create_update_project_file_log, sender=ProjectFiles)
         # Delete the file from the server, if it exists
         if project_file.file:
             project_file.file.delete()
         
         # Delete the instance from the database
         project_file.delete()
+        post_save.connect(create_update_project_file_log, sender=ProjectFiles)
         
         # Return success response
         return Response({"message": "File deleted successfully"}, status=status.HTTP_200_OK)
+    
+    elif request.method == 'PUT':
+        file_description = request.data.get("file_description", "").strip()
+        if not file_description:
+            return Response({"error": "File description cannot be empty"}, status=status.HTTP_400_BAD_REQUEST)
+
+        project_file._changes = [
+            ('file_description', project_file.file_description, file_description)
+        ]
+        
+        project_file.file_description = file_description
+        project_file.save()
+
+        serializer = ProjectFilesSerializer(project_file)
+        return Response(serializer.data, status=status.HTTP_200_OK)
