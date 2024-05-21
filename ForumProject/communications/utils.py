@@ -5,6 +5,8 @@ from channels.db import database_sync_to_async
 
 from communications.models import Room, Message
 
+logger = logging.getLogger('django.server')
+
 
 @database_sync_to_async
 def get_room(room_name):

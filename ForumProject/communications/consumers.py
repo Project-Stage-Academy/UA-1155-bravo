@@ -5,6 +5,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from .utils import get_room, get_messages, get_online_users, get_user_first_name, \
     add_user_to_online, remove_user_from_online, create_message
 
+logger = logging.getLogger('django.server')
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
 
@@ -19,6 +21,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         if not self.scope['user'].is_authenticated:
+            logger.info(f'the user is not authenticated')
             await self.close()
             return
 
@@ -48,7 +51,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'user': await get_user_first_name(self.user),
             }
         )
-
+        logger.info(f'{self.user.email} has connected to the room')
         await add_user_to_online(self.room, self.user)
 
     async def disconnect(self, close_code):
@@ -70,6 +73,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'user': await get_user_first_name(self.user),
                 }
             )
+            logger.info(f'{self.user.email} has disconnected from the room')
             await remove_user_from_online(self.room, self.user)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -91,6 +95,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'message': message,
             }
         )
+
+        logger.info(f'Message sent by {self.user.email}')
         await create_message(self.user, self.room, message)
 
     async def chat_message(self, event):
