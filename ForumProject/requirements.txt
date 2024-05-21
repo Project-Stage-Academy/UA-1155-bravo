@@ -12,6 +12,7 @@ cryptography==42.0.7
 daphne==4.1.2
 dill==0.3.8
 Django==5.0.6
+django-ratelimit==4.1.0
 django-countries==7.6.1
 django-extensions==3.2.3
 django-filter==24.2
