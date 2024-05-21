@@ -12,11 +12,14 @@ cryptography==42.0.7
 daphne==4.1.2
 dill==0.3.8
 Django==5.0.6
-django-ratelimit==4.1.0
+django-appconf==1.0.6
 django-countries==7.6.1
+django-cryptography @ git+https://github.com/saurav-codes/django-cryptography@847cade2cc07af8316d59dc0ded709dee708cbc8
 django-extensions==3.2.3
 django-filter==24.2
 django-phonenumbers==1.0.1
+django-ratelimit==4.1.0
+django-redis==5.4.0
 djangorestframework==3.15.1
 djangorestframework-jwt==1.11.0
 djangorestframework-simplejwt==5.3.1
@@ -27,6 +30,7 @@ isort==5.13.2
 MarkupSafe==2.1.5
 mccabe==0.7.0
 msgpack==1.0.8
+phonenumbers==8.13.37
 pillow==10.3.0
 platformdirs==4.2.1
 psycopg2-binary==2.9.9

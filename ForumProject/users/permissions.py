@@ -236,8 +236,3 @@ class IsStartupMember(BasePermission):
         user_startup = UserStartup.objects.filter(customuser=request.user, startup=view.get_object()).exists()
         
         return user_startup
-
-
-# class IsChatMember(BasePermission):
-#     def has_object_permission(self, request, view, obj):
-#

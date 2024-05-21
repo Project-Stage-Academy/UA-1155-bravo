@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'channels',
-    'django_extensions'
+    'django_extensions',
     'django_cryptography',
     'django_ratelimit',
 ]
@@ -283,7 +283,6 @@ CACHES = {
 }
 
 RATELIMIT_VIEW = 'communications.views.too_many_requests'
-
 
 
 try:
