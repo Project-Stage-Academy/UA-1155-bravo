@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 
-from users.models import UserRoleCompany
+from users.models import UserRoleCompany, UserStartup
 from .models import Room, Message
 
 User = get_user_model()
@@ -17,7 +17,8 @@ def index_view(request):
         raise PermissionDenied
     users = []
     if request.user.user_info.role == 'investor':
-        users = User.objects.exclude(id=request.user.id)
+        startups = UserStartup.objects.all().values_list('customuser', flat=True)
+        users = User.objects.filter(id__in=startups).exclude(id=request.user.id)
     rooms_list = Room.objects.filter(name__contains=str(request.user.id))
     return render(request, 'index.html', {
         'rooms': rooms_list, 'users': users
