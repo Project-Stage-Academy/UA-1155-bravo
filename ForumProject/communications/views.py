@@ -62,4 +62,4 @@ def send_message(request):
     
 
 def too_many_requests(request, exception):
-    return JsonResponse({'status': 'error', 'message': 'Too many requests'}, status=429)
+    return render(request, 'ratelimit.html', status=429)

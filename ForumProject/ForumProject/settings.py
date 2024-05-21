@@ -288,7 +288,7 @@ RATELIMIT_VIEW = 'communications.views.too_many_requests'
 
 
 
-try:
-    from .local_settings import *
-except ImportError:
-    pass
+# try:
+#     from .local_settings import *
+# except ImportError:
+#     pass
