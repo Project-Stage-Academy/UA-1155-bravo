@@ -108,6 +108,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
 class ChatNotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        if not self.scope['user'].is_authenticated:
+            await self.close()
+            return
+
         self.room_group_name = f'chat_notifications_{self.scope["user"].id}'
 
         # Join room group
