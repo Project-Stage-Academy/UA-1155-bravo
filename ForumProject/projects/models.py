@@ -4,7 +4,6 @@ from startups.models import Startup
 from investors.models import Investor
 import os
 import logging
-from django.utils.text import slugify
 from datetime import datetime
 
 
@@ -68,12 +67,11 @@ class ProjectFiles(models.Model):
         the selected folder.
         '''
         try:
-            # Replace special characters with underscores and truncate to 20 characters
-            startup_slug = slugify(self.project.startup.startup_name)[:20]
-            project_slug = slugify(self.project.name)[:20]
+            startup_folder = f'startup_{self.project.startup.pk}'
+            project_folder = f'project_{self.project.pk}'
 
             # Determine the folder path
-            folder_path = os.path.join('media', f'projects/{startup_slug}/{project_slug}/')
+            folder_path = os.path.join('media', f'startups/{startup_folder}/{project_folder}/')
 
             # Ensure the folder exists
             os.makedirs(folder_path, exist_ok=True)
