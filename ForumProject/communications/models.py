@@ -15,7 +15,7 @@ class ChatNotification(models.Model):
     read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'Chat notification for {self.recipient.username}'
+        return f'Chat notification for {self.recipient.email}'
 
 # @receiver(post_save, sender=Message)
 # def create_notification(sender, instance, created, **kwargs):

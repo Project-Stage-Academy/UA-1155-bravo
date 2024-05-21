@@ -21,7 +21,7 @@ def create_chat_notification(sender, instance, created, **kwargs):
                 recipient=user,
                 message=instance
             )
-            logger.debug(f'ChatNotification created for user {user.username} and message {instance.content}')
+            logger.debug(f'ChatNotification created for user {user.email} and message {instance.content}')
 
 @receiver(post_save, sender=Message)
 def send_chat_notification_via_channels(sender, instance, created, **kwargs):
