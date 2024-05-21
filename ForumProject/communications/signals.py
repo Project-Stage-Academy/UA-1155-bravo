@@ -22,18 +22,3 @@ def create_chat_notification(sender, instance, created, **kwargs):
                 message=instance
             )
             logger.debug(f'ChatNotification created for user {user.email} and message {instance.content}')
-
-@receiver(post_save, sender=Message)
-def send_chat_notification_via_channels(sender, instance, created, **kwargs):
-    if created:
-        room = instance.room
-        channel_layer = get_channel_layer()
-        for user in room.online.all():
-            async_to_sync(channel_layer.group_send)(
-                f'chat_notifications_{user.id}',
-                {
-                    'type': 'send_chat_notification',
-                    'chat_notification': f'New message in {room.name}'
-                }
-            )
-            logger.debug(f'Notification sent via channel layer for user {user.username}')

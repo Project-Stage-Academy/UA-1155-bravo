@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from .serializers import RoomSerializer, MessageSerializer
 from .models import Room, Message
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics
 from .models import Room, Message
 
@@ -28,10 +30,25 @@ def room_view(request, user_id):
         thread_name = f'chat_{user.id}_{request.user.id}'
     chat_room, created = Room.objects.get_or_create(name=thread_name)
 
-    messages = Message.objects.filter(room=chat_room)
-    users_messages = '\n'.join([str(message) for message in messages])+'\n'
     return render(request, 'room.html', {
-        'room': chat_room, 'users_messages': users_messages
+        'room': chat_room
+    })
+
+
+@api_view(['GET'])
+@login_required
+def load_messages(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    messages = Message.objects.filter(room=room).order_by('-timestamp')
+    paginator = Paginator(messages, 10)
+
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    serialized_messages = MessageSerializer(page_obj, many=True)
+    return Response({
+        'messages': serialized_messages.data,
+        'has_next': page_obj.has_next()
     })
 
 class CreateConversationView(generics.CreateAPIView):
@@ -44,6 +61,7 @@ class SendMessageView(generics.CreateAPIView):
 
 class ListMessagesView(generics.ListAPIView):
     serializer_class = MessageSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         conversation_id = self.kwargs['conversation_id']
