@@ -1,19 +1,19 @@
-from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.decorators import api_view, permission_classes
-from datetime import datetime
 from rest_framework.exceptions import NotFound
-from .models import Project, ProjectFiles, ProjectLog
+from django.db.models.signals import post_save
+from .models import Project, ProjectFiles
 from .serializers import ProjectSerializer
+from .signals import create_update_project_file_log
+
 
 from users.permissions import (
     IsInvestorRole,
     IsStartupCompanySelected,
     IsProjectMember,
-    IsStartupRole)
+    IsStartupRole
+)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -53,80 +53,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
             permission_classes = [IsInvestorRole | IsProjectMember]
         elif self.action == 'create':
             permission_classes = [IsStartupCompanySelected]
-        elif self.action == 'update' or self.action == 'partial_update' or self.action == 'destroy':
+        elif self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsStartupCompanySelected, IsProjectMember]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
 
-    @classmethod
-    def create_log(cls, request, event, instance, changes=None, project_file=None):
-        '''
-        Class method to create a log entry for project-related events.
-
-        This method logs events such as project creation, updates, deletion, or file deletion related to a specific project. 
-        It captures the state of the project or file before and after the event, along with additional contextual information.
-
-        Parameters:
-            cls (type): The class that defines this method.
-            request (HttpRequest): The HTTP request object, used to get user information.
-            event (str): The type of event to log. Accepted values are 'new project', 'update project', 'delete project', and 'delete file'.
-            instance (Project): The project instance to which the log refers.
-            changes (list[tuple[str, any, any]], optional): A list of field changes in the format (field name, old value, new value). Default is None.
-            project_file (ProjectFile, optional): A related project file, used if the event is 'delete file'. Default is None.
-
-        Returns:
-            None
-
-        Log Creation:
-            This method creates a `ProjectLog` object with details about the event, such as the project instance, the user who triggered the event, 
-            the action performed, the previous state, and the modified state. The `previous_state` and `modified_state` fields have 
-            character length limits, which are enforced to avoid truncation issues.
-        
-        Event-Specific Information:
-            - 'new project': The log records the project creation with a custom message indicating the project ID and name.
-            - 'update project': The log captures the list of changed fields with their old and new values.
-            - 'delete project': The log records basic project information as the previous state, with no modified state.
-            - 'delete file': The log captures the file's ID and description in the previous state, with no modified state.
-        
-        Note:
-            The method uses the current date and time to record when the change occurred. It also fetches the startup ID from 
-            the user's associated company information.
-        '''
-
-        max_length_previous = ProjectLog._meta.get_field('previous_state').max_length
-        max_length_mofified = ProjectLog._meta.get_field('modified_state').max_length
-
-        if event == 'new project':
-            action = 'Created Project'
-            previous_state='n/a'
-            modified_state=f'New Project, id: {instance.pk}, name: {instance.name}'[:max_length_mofified]
-        elif event == 'update project':
-            action = 'Updated Project'
-            previous_state=', '.join([f'{field}: {old_value}' for field, old_value, _ in changes])[:max_length_previous]
-            modified_state=', '.join([f'{field}: {new_value}' for field, _, new_value in changes])[:max_length_mofified]
-        elif event == 'delete project':
-            action = 'Deleted Project'
-            previous_state = f'Project ID: {instance.pk}, Name: {instance.name}'[:max_length_previous]
-            modified_state = 'n/a'
-        elif event == 'delete file':
-            action = 'Deleted File of Project'
-            previous_state = f'File ID: {project_file.pk}, Description: {project_file.file_description}'[:max_length_previous]
-            modified_state = 'n/a'
-
-        ProjectLog.objects.create(
-            project = instance,
-            project_birth_id = instance.pk,
-            change_date = datetime.now().date(),
-            change_time = datetime.now().time(),
-            user_id = request.user.pk,
-            startup_id = request.user.user_info.company_id,
-            action = action,
-            previous_state = previous_state,
-            modified_state = modified_state
-        )
-
-    
     def create(self, request, *args, **kwargs):
         """
         Handle project creation and create a log upon success.
@@ -157,15 +89,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         """
         serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        
-        # Save the new project and create a log
-        project = serializer.save()
-
-        # create log
-        ProjectViewSet.create_log(request, 'new project', project)
-        
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     def update(self, request, *args, **kwargs):
         """
@@ -199,20 +124,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance, data=request.data, partial=True, context={'request': request})
             serializer.is_valid(raise_exception=True)
             
-            # Determine changes and create log if needed
             changes = []
-            for field_name in Project._meta.fields:
-                if getattr(instance, field_name.name) != request.data.get(field_name.name, getattr(instance, field_name.name)):
-                    changes.append(
-                        (field_name.name, getattr(instance, field_name.name), request.data.get(field_name.name))
-                    )
-
-            project = serializer.save()
+            for field in Project._meta.fields:
+                field_name = field.name
+                old_value = str(getattr(instance, field_name))
+                new_value = str(request.data.get(field_name, old_value))
+                if old_value != new_value:
+                    changes.append((field_name, old_value, new_value))
             
             if changes:
-                # create log
-                ProjectViewSet.create_log(request, 'update project', project, changes=changes)
-
+                instance._changes = changes
+            
+            serializer.save()
+            
             return Response(serializer.data)
         
         except Exception as e:
@@ -223,10 +147,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         '''
-        Delete an existing Project along with its associated files and create logs for these actions.
+        Delete an existing Project along with its associated files and ensure only one log entry is created.
 
         This method handles the deletion of a Project instance, including its related ProjectFiles. 
-        It creates logs for both the project deletion and any associated file deletions.
+        It ensures that logs are created for both the project deletion and any associated file deletions
+        by marking the project instance with `_log_deletion = True`.
 
         Parameters:
             request (HttpRequest): The HTTP request indicating the Project to be deleted.
@@ -241,6 +166,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         Log Creation:
             The method creates log entries for the project deletion and, if applicable, for each ProjectFile deleted during this process.
+            By marking the project instance with `_log_deletion = True`, it ensures that the log entry is created only once.
 
         Error Handling:
             If the Project does not exist, a `NotFound` exception is raised with an appropriate message.
@@ -249,29 +175,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project_instance = self.get_object()
 
         try:
-            # Log the project deletion
-            ProjectViewSet.create_log(request, 'delete project', project_instance)
-
-            # Find and delete all ProjectFiles related to this project
             project_files = ProjectFiles.objects.filter(project=project_instance)
-            
-            for project_file in project_files:
-                # Log each project file deletion
-                ProjectViewSet.create_log(request, 'delete file', project_instance, project_file=project_file)
-                # Delete the actual files from the server
+
+            post_save.disconnect(create_update_project_file_log, sender=ProjectFiles)
+            for project_file in project_files:                
                 if project_file.file:
                     project_file.file.delete()  # Delete from file system
             
-            # Delete all ProjectFiles from the database
             project_files.delete()
-
-            # Now delete the project itself
-            self.perform_destroy(project_instance)
+            project_instance.delete()
+            post_save.connect(create_update_project_file_log, sender=ProjectFiles)
+            return Response({"message": "Project and associated files deleted successfully"}, status=status.HTTP_200_OK)
         except Project.DoesNotExist:
-            raise NotFound("Project not found.")
-        
-        return Response({"message": "Project and associated files deleted successfully"}, status=status.HTTP_200_OK)
-
-    # Override the default behavior for 'perform_destroy' to use 'destroy' logic
-    def perform_destroy(self, instance):
-        instance.delete()
+            return Response({"error": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

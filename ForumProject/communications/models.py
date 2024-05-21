@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-
+from django_cryptography.fields import encrypt
 
 class Room(models.Model):
     name = models.CharField(max_length=128)
@@ -38,7 +38,7 @@ class Room(models.Model):
 class Message(models.Model):
     user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     room = models.ForeignKey(to=Room, on_delete=models.CASCADE)
-    content = models.CharField(max_length=512)
+    content = encrypt(models.CharField(max_length=512))
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
