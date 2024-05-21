@@ -50,16 +50,3 @@ def room_view(request, user_id):
     })
     
     
-@login_required
-@ratelimit(key='user', rate='5/m', block=True)
-def send_message(request):
-    try:
-        logger.info(f'Message sent by user {request.user.email}')
-        return JsonResponse({'status': 'Message sent'})
-    except Exception as e:
-        logger.error(f'Error sending message: {str(e)}')
-        return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
-    
-
-def too_many_requests(request, exception):
-    return render(request, 'ratelimit.html', status=429)
