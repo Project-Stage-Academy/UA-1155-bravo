@@ -3,6 +3,9 @@ from django.dispatch import receiver
 from .models import Project, ProjectFiles, ProjectLog
 from users.models import UserRoleCompany
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_log(instance, action, previous_state, modified_state):
     '''
@@ -14,17 +17,20 @@ def create_log(instance, action, previous_state, modified_state):
         previous_state (str): The state before the action.
         modified_state (str): The state after the action.
     '''
-    ProjectLog.objects.create(
-        project=None if action == 'Deleted Project' else instance,
-        project_birth_id=instance.project.pk if action == 'Deleted File of Project' else instance.pk,
-        change_date=datetime.now().date(),
-        change_time=datetime.now().time(),
-        user_id=UserRoleCompany.objects.get(role='startup', company_id=instance.startup_id).user.pk,
-        startup_id=instance.startup_id,
-        action=action,
-        previous_state=previous_state[:255],
-        modified_state=modified_state[:255]
-    )
+    try:
+        ProjectLog.objects.create(
+            project=None if action == 'Deleted Project' else instance,
+            project_birth_id=instance.project.pk if action == 'Deleted File of Project' else instance.pk,
+            change_date=datetime.now().date(),
+            change_time=datetime.now().time(),
+            user_id=UserRoleCompany.objects.get(role='startup', company_id=instance.startup_id).user.pk,
+            startup_id=instance.startup_id,
+            action=action,
+            previous_state=previous_state[:255],
+            modified_state=modified_state[:255]
+        )
+    except:
+        logger.error(f'Error: Project log failed to be created on {datetime.now().date()} on {datetime.now().time()}')
 
 def create_file_handling_log(instance, action, previous_state, modified_state):
     '''
@@ -36,17 +42,20 @@ def create_file_handling_log(instance, action, previous_state, modified_state):
         previous_state (str): The state before the action.
         modified_state (str): The state after the action.
     '''
-    ProjectLog.objects.create(
-        project=instance.project,
-        project_birth_id=instance.project.pk,
-        change_date=datetime.now().date(),
-        change_time=datetime.now().time(),
-        user_id=UserRoleCompany.objects.get(role='startup', company_id=instance.project.startup_id).user.pk,
-        startup_id=instance.project.startup_id,
-        action=action,
-        previous_state=previous_state[:255],
-        modified_state=modified_state[:255]
-    )
+    try:
+        ProjectLog.objects.create(
+            project=instance.project,
+            project_birth_id=instance.project.pk,
+            change_date=datetime.now().date(),
+            change_time=datetime.now().time(),
+            user_id=UserRoleCompany.objects.get(role='startup', company_id=instance.project.startup_id).user.pk,
+            startup_id=instance.project.startup_id,
+            action=action,
+            previous_state=previous_state[:255],
+            modified_state=modified_state[:255]
+        )
+    except:
+        logger.error(f'Error: Project log failed to be created on {datetime.now().date()} on {datetime.now().time()}')
 
 
 @receiver(post_save, sender=Project)
