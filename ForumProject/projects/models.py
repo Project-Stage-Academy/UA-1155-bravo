@@ -9,6 +9,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 class Project(models.Model):
     """
     Model representing a project.
@@ -21,7 +22,7 @@ class Project(models.Model):
         status (str): The status of the Project, chosen from predefined choices.
         created_at (date-time): date of creation of the Project.
         updated_at (date-time): date of last modification of the Project.
-        duration (float): number of moonths which implementation of the Project is planned for.
+        duration (float): number of months which implementation of the Project is planned for.
         budget_currency (str): currency of the Project's budget
         budget_amount (int): amount of the Project's budget
     """
@@ -45,10 +46,9 @@ class Project(models.Model):
         verbose_name_plural = 'Projects'
         ordering = ['startup', 'name']
         constraints = [
-            models.UniqueConstraint(fields=['startup', 'name'],
-            name='unique_project_per_startup')
+            models.UniqueConstraint(fields=['startup', 'name'], name='unique_project_per_startup')
         ]
-    
+
     def __str__(self):
         """
         Return the name of the project.
@@ -58,14 +58,15 @@ class Project(models.Model):
         """
         return self.name
 
+
 class ProjectFiles(models.Model):
 
     def _generate_upload_path(self, filename):
-        '''
+        """
         The function creates a valid path for each Project's documentation upload
         and ensures renaming of the file being uploaded if its name is not unique in 
         the selected folder.
-        '''
+        """
         try:
             startup_folder = f'startup_{self.project.startup.pk}'
             project_folder = f'project_{self.project.pk}'
@@ -102,9 +103,10 @@ class ProjectFiles(models.Model):
             logger.error(f'An unexpected error occurred: {str(e)}')
             raise
 
-
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, db_index=True, related_name='project_files')
-    file_description = models.CharField(max_length=255, blank=False, db_index=True, verbose_name='file description')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, db_index=True,
+                                related_name='project_files')
+    file_description = models.CharField(max_length=255, blank=False, db_index=True,
+                                        verbose_name='file description')
     file = models.FileField(
         upload_to=_generate_upload_path,
         blank=True,
@@ -120,13 +122,16 @@ class ProjectFiles(models.Model):
         if not self.file_description.strip():
             raise ValidationError("File description cannot be empty.")
 
+
 class InvestorProject(models.Model):
     """
     Model represents the relationship between an Investor and a Project,
     including the percentage share the Investor holds in the Project.
     """
-    investor = models.ForeignKey(Investor, on_delete=models.CASCADE, db_index=True, related_name='shortlisted_project')
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, db_index=True, related_name='project_share')
+    investor = models.ForeignKey(Investor, on_delete=models.CASCADE, db_index=True,
+                                 related_name='shortlisted_project')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, db_index=True,
+                                related_name='project_share')
     share = models.IntegerField()
 
     class Meta:
@@ -141,7 +146,8 @@ class InvestorProject(models.Model):
         ]
 
     def __str__(self):
-        return f'Interest of {self.investor} in Project {self.project} has changed, current subscription proposal: {self.share}%'
+        return (f'Interest of {self.investor} in Project {self.project} '
+                f'has changed, current subscription proposal: {self.share}%')
 
     def clean(self):
         """
@@ -151,8 +157,23 @@ class InvestorProject(models.Model):
         """
         if self.share < 0 or self.share > 100:
             raise ValidationError("Share percentage must be between 0 and 100.")
+
+    @classmethod
+    def get_total_funding(cls, project_id):
+        """
+        Calculate the total funding from all investors for a specific project.
+
+        Args:
+            project_id (int): The ID of the project.
+
+        Returns:
+            int: The total amount of funding.
+        """
+        total_funding = cls.objects.filter(
+            project_id=project_id).aggregate(total=models.Sum('share'))['total']
+        return total_funding or 0
         
-        
+
 class ProjectLog(models.Model):
     """
     Model representing a log entry for project-related events.
@@ -168,7 +189,8 @@ class ProjectLog(models.Model):
         change_time (TimeField): The time when the change was logged.
         user_id (int): The ID of the user who performed the action.
         startup_id (int): The ID of the startup associated with the project.
-        action (str): A description of the action performed (e.g., 'Created Project', 'Updated Project', 'Deleted Project').
+        action (str): A description of the action performed (e.g., 'Created Project',
+        'Updated Project', 'Deleted Project').
         previous_state (str): A textual representation of the state before the change.
         modified_state (str): A textual representation of the state after the change.
     """

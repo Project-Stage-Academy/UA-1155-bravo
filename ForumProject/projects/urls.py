@@ -1,5 +1,5 @@
 from django.urls import path, include
-from . import views_projects, views_files, views_follow, views_logs
+from . import views_projects, views_files, views_follow, views_logs, views_shares_info
 from rest_framework import routers
 
 app_name = 'projects'
@@ -17,11 +17,13 @@ urlpatterns = [
         'delete': 'destroy',
     }), name='project_files_by_project'),
     path('<int:pk>/file/<int:projectfiles_id>/',
-        views_files.project_file, name='project_file'),
+         views_files.project_file, name='project_file'),
     path('follow/<int:project_id>/',
-        views_follow.follow, name='follow'),
+         views_follow.follow, name='follow'),
     path('subscription/<int:project_id>/<int:share>/',
-        views_follow.subscription, name='subscription'),
+         views_follow.subscription, name='subscription'),
     path('stop-follow/<int:project_id>/',
-        views_follow.delist_project, name='delist_project'),
+         views_follow.delist_project, name='delist_project'),
+    path('<int:project_id>/shares_info/',
+         views_shares_info.project_investor_shares, name='views_shares_info'),
 ]

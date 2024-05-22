@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.db.models import Sum
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -8,28 +9,34 @@ from .serializers import InvestorProjectSerializer
 
 from users.permissions import (IsInvestorRole, IsInvestorCompanySelected, IsStartupCompanySelected)
 
+
 @api_view(['POST'])
 @permission_classes([IsInvestorRole, IsInvestorCompanySelected])
 def follow(request, project_id):
     """
     Shortlist a project for an investor with a share of zero.
 
-    This function creates a new `InvestorProject` instance with a share of zero for a given investor and project. 
-    It checks if the project is already shortlisted by the investor, and if so, returns an error response.
+    This function creates a new `InvestorProject` instance with a share of zero for a given
+    investor and project.
+    It checks if the project is already shortlisted by the investor, and if so, returns
+    an error response.
 
     Parameters:
         request (HttpRequest): The HTTP request containing the investor and project details.
         project_id (int): The ID of the project to be followed.
 
     Returns:
-        Response: A response indicating whether the project was successfully shortlisted or an error occurred.
+        Response: A response indicating whether the project was successfully shortlisted or
+        an error occurred.
 
     Raises:
         serializers.ValidationError: If the project is already followed by the investor.
 
     Notes:
-        - If the project is already followed, the function returns an HTTP 400 response with an error message.
-        - If successful, it returns an HTTP 201 response with a message indicating that the project is shortlisted.
+        - If the project is already followed, the function returns an HTTP 400 response
+        with an error message.
+        - If successful, it returns an HTTP 201 response with a message indicating that the project
+        is shortlisted.
     """
     
     investor_id = request.user.user_info.company_id
@@ -52,7 +59,9 @@ def follow(request, project_id):
     )
     investor_project.save()
 
-    return Response({"message": "Project shortlisted with zero share"}, status=status.HTTP_201_CREATED)
+    return Response({"message": "Project shortlisted with zero share"},
+                    status=status.HTTP_201_CREATED)
+
 
 @api_view(['POST'])
 @permission_classes([IsInvestorRole, IsInvestorCompanySelected])
@@ -71,14 +80,16 @@ def subscription(request, project_id, share):
         share (int): The percentage share for the subscription.
 
     Returns:
-        Response: A response indicating whether the subscription was successful or if an error occurred.
+        Response: A response indicating whether the subscription was successful or if
+        an error occurred.
 
     Raises:
         serializers.ValidationError: If the share value is not between 0 and 100.
 
     Notes:
         - If the share is not within the valid range, an HTTP 400 response is returned.
-        - If the investor is already subscribed, the share value is updated and an HTTP 200 response is returned.
+        - If the investor is already subscribed, the share value is updated
+        and an HTTP 200 response is returned.
         - If no record exists, a new subscription is created, and an HTTP 201 response is returned.
     """
 
@@ -90,9 +101,27 @@ def subscription(request, project_id, share):
     
     investor_id = request.user.user_info.company_id
 
+    # Sum the shares of all investors for the project
+    total_share = InvestorProject.objects.filter(project_id=project_id).aggregate(Sum('share'))[
+                      'share__sum'] or 0
+
+    # Check if the new share exceeds the total allowable share
+    try:
+        existing_investor_project = InvestorProject.objects.get(project_id=project_id,
+                                                                investor_id=investor_id)
+        total_share -= existing_investor_project.share
+    except InvestorProject.DoesNotExist:
+        pass
+
+    if total_share + share > 100:
+        return Response(
+            {"error": "Total share for the project cannot exceed 100%"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     # Check if an InvestorProject with the given project_id and investor_id already exists
     try:
-        investor_project = InvestorProject.objects.get(project_id=project_id, investor_id=investor_id)
+        investor_project = InvestorProject.objects.get(project_id=project_id,
+                                                       investor_id=investor_id)
         
         investor_project.share = share
         investor_project.save()
@@ -114,14 +143,17 @@ def subscription(request, project_id, share):
             status=status.HTTP_201_CREATED
         )
 
+
 @api_view(['POST'])
 @permission_classes([IsInvestorRole, IsInvestorCompanySelected])
 def delist_project(request, project_id):
     """
     Delist a project for a specific investor.
 
-    This function removes an `InvestorProject` instance for a specific investor and project, effectively delisting the project 
-    for the investor. It fetches the `InvestorProject` record and deletes it, returning a success message.
+    This function removes an `InvestorProject` instance for a specific investor and project,
+    effectively delisting the project
+    for the investor. It fetches the `InvestorProject` record and deletes it, returning
+    a success message.
 
     Parameters:
         request (HttpRequest): The HTTP request indicating the project to be delisted.
@@ -137,7 +169,8 @@ def delist_project(request, project_id):
         - If successful, the function returns an HTTP 200 response with a success message.
     """
     investor_id = request.user.user_info.company_id
-    investor_project = get_object_or_404(InvestorProject, project_id=project_id, investor_id=investor_id)
+    investor_project = get_object_or_404(InvestorProject, project_id=project_id,
+                                         investor_id=investor_id)
     investor_project.delete()
 
     return Response({"message": "Project delisted for the investor"}, status=status.HTTP_200_OK)
@@ -147,11 +180,13 @@ def delist_project(request, project_id):
 @permission_classes([IsInvestorCompanySelected | IsStartupCompanySelected])
 def view_followed_projects(request):
     """
-    Retrieve a list of projects followed by an investor or created by a startup and followed by investors.
+    Retrieve a list of projects followed by an investor or created by a startup and followed
+    by investors.
 
     This function fetches a list of `InvestorProject` instances based on the user's role. 
     If the user is an investor, it retrieves projects followed by that investor. 
-    If the user represents a startup, it retrieves projects followed by investors that belong to that startup.
+    If the user represents a startup, it retrieves projects followed by investors that belong
+    to that startup.
 
     Parameters:
         request (HttpRequest): The HTTP request to fetch the followed projects.
@@ -161,8 +196,10 @@ def view_followed_projects(request):
 
     Notes:
         - If the user is an investor, the function retrieves projects that the investor follows.
-        - If the user represents a startup, it retrieves projects created by the startup that are followed by investors.
-        - The response contains serialized data for the list of followed projects and returns an HTTP 200 status upon success.
+        - If the user represents a startup, it retrieves projects created by the startup that are
+        followed by investors.
+        - The response contains serialized data for the list of followed projects and returns
+        an HTTP 200 status upon success.
     """
     
     user = request.user
