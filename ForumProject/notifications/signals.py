@@ -44,7 +44,7 @@ def create_notifications(instances, follow_status_change=True):
                 project=instance.project,
                 startup=instance.project.startup,
                 investor=instance.investor,
-                trigger='follower(s) list changed' if follow_status_change else 'subscription changed',
+                trigger='Project follower(s) list changed' if follow_status_change else 'Project subscription changed',
                 initiator='investor',
             )
         )
@@ -83,18 +83,18 @@ def do_notifications(instance, follow_status_change=True):
         message = f'{str(notifications[0])}.\n\n\n{str(instance)}'
 
         if follow_status_change:
-            if startup.notice_preferences.email_on_followers_change:
+            if startup.startup_notice_prefs.email_project_followers_change:
                 # Asynchronously send email
                 email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
                 email_thread.start()
-            if startup.notice_preferences.in_app_on_followers_change:
+            if startup.startup_notice_prefs.push_project_followers_change:
                 print(message) # This is a placeholder for "in app" / push notifications implementation
         else:
-            if startup.notice_preferences.email_on_share_subscription:
+            if startup.startup_notice_prefs.email_project_subscription_change:
                 # Asynchronously send email
                 email_thread = threading.Thread(target=send_email_async, args=(subject, message, recipients))
                 email_thread.start()
-            if startup.notice_preferences.in_app_on_share_subscription:
+            if startup.startup_notice_prefs.push_project_subscription_change:
                 print(message) # This is a placeholder for "in app" / push notifications implementation
 
 # Signal to record and send a notification when an investor starts following a project or changes a share

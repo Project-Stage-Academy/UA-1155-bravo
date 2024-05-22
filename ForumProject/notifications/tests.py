@@ -173,7 +173,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, EXPECTED_STATUS['CREATED'])
 
         # Check if a record is added to the Notification table
-        notifications_count = self.get_notification_count('follower(s) list changed')
+        notifications_count = self.get_notification_count('Project follower(s) list changed')
         self.assertEqual(notifications_count, 1)
 
     def test_unfollow_project_creates_notification(self):
@@ -192,7 +192,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
 
         # Check if a record is added to the Notification table
-        notifications_count = self.get_notification_count('follower(s) list changed')
+        notifications_count = self.get_notification_count('Project follower(s) list changed')
         self.assertEqual(notifications_count, 2)
 
     def test_subscription_creates_notification(self):
@@ -208,7 +208,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, EXPECTED_STATUS['CREATED'])
 
         # Check if a record is added to the Notification table
-        notifications_count = self.get_notification_count('subscription changed')
+        notifications_count = self.get_notification_count('Project subscription changed')
 
         self.assertEqual(notifications_count, 1)
 
@@ -219,13 +219,13 @@ class NotificationsTestCase(TestCase):
         self.authenticate(0)  # Authenticate as startup
 
         data = {
-            'email_on_followers_change': False,
-            'email_on_share_subscription': False,
+            'email_project_followers_change': False,
+            'email_project_subscription_change': False,
         }
         response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
-        self.assertFalse(response.data['email_on_followers_change'])
-        self.assertFalse(response.data['email_on_share_subscription'])
+        self.assertFalse(response.data['email_project_followers_change'])
+        self.assertFalse(response.data['email_project_subscription_change'])
 
     def test_turn_off_in_app_notifications(self):
         """
@@ -234,13 +234,13 @@ class NotificationsTestCase(TestCase):
         self.authenticate(0)  # Authenticate as startup
 
         data = {
-            'in_app_on_followers_change': False,
-            'in_app_on_share_subscription': False,
+            'push_project_followers_change': False,
+            'push_project_subscription_change': False,
         }
         response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
-        self.assertFalse(response.data['in_app_on_followers_change'])
-        self.assertFalse(response.data['in_app_on_share_subscription'])
+        self.assertFalse(response.data['push_project_followers_change'])
+        self.assertFalse(response.data['push_project_subscription_change'])
 
     def test_turn_off_all_notifications(self):
         """
@@ -249,17 +249,17 @@ class NotificationsTestCase(TestCase):
         self.authenticate(0)  # Authenticate as startup
 
         data = {
-            'email_on_followers_change': False,
-            'email_on_share_subscription': False,
-            'in_app_on_followers_change': False,
-            'in_app_on_share_subscription': False,
+            'email_project_followers_change': False,
+            'email_project_subscription_change': False,
+            'push_project_followers_change': False,
+            'push_project_subscription_change': False,
         }
         response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
-        self.assertFalse(response.data['email_on_followers_change'])
-        self.assertFalse(response.data['email_on_share_subscription'])
-        self.assertFalse(response.data['in_app_on_followers_change'])
-        self.assertFalse(response.data['in_app_on_share_subscription'])
+        self.assertFalse(response.data['email_project_followers_change'])
+        self.assertFalse(response.data['email_project_subscription_change'])
+        self.assertFalse(response.data['push_project_followers_change'])
+        self.assertFalse(response.data['push_project_subscription_change'])
 
     def test_unauthorized_user_cannot_follow_project(self):
         """

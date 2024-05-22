@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from startups.models import Startup
-from notifications.models import Notification, NotificationPreferences
+from notifications.models import Notification, StartupNotificationPrefs
 from subscriptions.models import SubscribeInvestorStartup
 
 
@@ -25,9 +25,9 @@ def send_notification_on_startup_update(sender, instance, created, **kwargs):
             Notification.objects.create(
                 startup=instance,
                 investor=subscriber.investor,
-                trigger='startup profile updated',
+                trigger='Startup profile updated',
                 initiator='startup'
             )
     
     else:
-        NotificationPreferences.objects.create(startup=instance)
+        StartupNotificationPrefs.objects.create(startup=instance)

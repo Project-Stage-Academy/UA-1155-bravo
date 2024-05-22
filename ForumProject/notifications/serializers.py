@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Notification, NotificationPreferences
+from .models import Notification, StartupNotificationPrefs, InvestorNotificationPrefs
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -21,11 +21,11 @@ class NotificationSerializer(serializers.ModelSerializer):
         fields = ['project', 'startup', 'investor', 'trigger', 'initiator', 'date_time']
         read_only_fields = ['project', 'startup', 'investor', 'trigger', 'initiator', 'date_time']
 
-class NotificationPreferencesSerializer(serializers.ModelSerializer):
+class StartupNotificationPrefsSerializer(serializers.ModelSerializer):
     """
-    Serializer for the NotificationPreferences model.
+    Serializer for the StartupNotificationPrefs model.
 
-    Serializes NotificationPreferences instances for API representation.
+    Serializes StartupNotificationPrefs instances for API representation.
 
     Attributes:
         startup_id (int): ID of the startup associated with the notification preferences.
@@ -41,18 +41,49 @@ class NotificationPreferencesSerializer(serializers.ModelSerializer):
         Retrieve the ID of the associated startup.
 
         Args:
-            obj (NotificationPreferences): The NotificationPreferences instance.
+            obj (StartupNotificationPrefs): The StartupNotificationPrefs instance.
 
         Returns:
             int: The ID of the associated startup.
         """
         return self.context.get('startup_id')
     class Meta:
-        model = NotificationPreferences
+        model = StartupNotificationPrefs
         fields = [
             'startup_id',
-            'email_on_followers_change',
-            'email_on_share_subscription',
-            'in_app_on_followers_change',
-            'in_app_on_share_subscription'
+            'email_project_followers_change',
+            'email_project_subscription_change',
+            'push_project_followers_change',
+            'push_project_subscription_change',
+            'email_startup_subscribed',
+            'email_startup_unsubscribed',
+            'push_startup_subscribed',
+            'push_startup_unsubscribed'
+        ]
+
+class InvestorNotificationPrefsSerializer(serializers.ModelSerializer):
+    """
+    TODO
+    """
+    investor_id = serializers.SerializerMethodField()
+
+    def get_investor_id(self, obj):
+        """
+        Retrieve the ID of the associated investor.
+
+        Args:
+            obj (InvestorNotificationPrefs): The InvestorNotificationPrefs instance.
+
+        Returns:
+            int: The ID of the associated investor.
+        """
+        return self.context.get('investor_id')
+    class Meta:
+        model = InvestorNotificationPrefs
+        fields = [
+            'investor_id',
+            'email_project_profile_change',
+            'push_project_profile_change',
+            'email_startup_profile_update',
+            'push_startup_profile_update'
         ]

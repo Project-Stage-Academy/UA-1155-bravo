@@ -6,31 +6,28 @@ from startups.models import Startup
 class Notification(models.Model):
     # Choices for the trigger field
     TRIGGER_CHOICES = [
-        ('follower(s) list changed', 'follower(s) list changed'),
-        ('subscription changed', 'subscription changed'),
-        ('project status changed', 'project status changed'),
-        ('project budget changed', 'project budget changed'),
-        ('startup profile updated', 'startup profile updated'),
-        ('message sent', 'message sent'),
+        # with these triggers, Project owners should receive Notification
+        ('Project follower(s) list changed', 'Project follower(s) list changed'),
+        ('Project subscription changed', 'Project subscription changed'),
+        # with this trigger, owners of Investors that follow Project should receive Notification
+        ('Project profile changed', 'Project profile changed'),
+        # with this trigger, owners of Investors that subscribed for Startup should receive a Notification
+        ('Startup profile updated', 'Startup profile updated'),
+        # with these triggers, Startup owners should receive a Notification
+        ('Startup got new sibscriber', 'Startup got new sibscriber'),
+        ('Startup has lost a sibscriber', 'Startup has lost a sibscriber'),
     ]
     # Choices for the initiator field
     INITIATOR_CHOICES = [
         ('investor', 'investor'),
         ('project', 'project'),
         ('startup', 'startup'),
-        
     ]    
-    # ForeignKey to Project model
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, related_name='notice_project', null=True)
-    # ForeignKey to Startup model
     startup = models.ForeignKey(Startup, on_delete=models.SET_NULL, related_name='notice_startup', null=True)
-    # ForeignKey to Investor model
     investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, related_name='notice_investor', null=True)
-    # CharField for trigger choice
     trigger = models.CharField(max_length=50, choices=TRIGGER_CHOICES)
-    # CharField for initiator choice
     initiator = models.CharField(max_length=8, choices=INITIATOR_CHOICES)
-    # DateTimeField for date and time
     date_time = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -56,13 +53,35 @@ class Notification(models.Model):
             models.CheckConstraint(check=models.Q(project__isnull=False) | models.Q(investor__isnull=False), name='project_or_investor_required'),
         ]
 
-class NotificationPreferences(models.Model):
-    startup = models.OneToOneField(Startup, 
+class StartupNotificationPrefs(models.Model):
+    startup = models.OneToOneField(
+        Startup, 
         on_delete=models.CASCADE,
-        related_name='notice_preferences',
+        related_name='startup_notice_prefs',
         null=True
     )
-    email_on_followers_change = models.BooleanField(default=True, verbose_name='Followers change email notices')
-    email_on_share_subscription = models.BooleanField(default=True, verbose_name='Subscriptions change email notices')
-    in_app_on_followers_change = models.BooleanField(default=True, verbose_name='Followers change in_app notices')
-    in_app_on_share_subscription = models.BooleanField(default=True, verbose_name='Subscriptions change in_app notices')
+    # preferences for Notifications about Investors' actions on PROJECTS
+    email_project_followers_change = models.BooleanField(default=True, verbose_name='Email on Project followers change')
+    email_project_subscription_change = models.BooleanField(default=True, verbose_name='Email on Project subscription change')
+    push_project_followers_change = models.BooleanField(default=True, verbose_name='Push on Project followers change')
+    push_project_subscription_change = models.BooleanField(default=True, verbose_name='Push on Project subscription change')
+    # preferences for Notifications about Investors' actions on STARTUPS
+    email_startup_subscribed = models.BooleanField(default=True, verbose_name='Email if Startup subscribed')
+    email_startup_unsubscribed = models.BooleanField(default=True, verbose_name='Email if Startup unsubscribed')
+    push_startup_subscribed = models.BooleanField(default=True, verbose_name='Push if Startup subscribed')
+    push_startup_unsubscribed = models.BooleanField(default=True, verbose_name='Push if Startup unsubscribed')
+
+class InvestorNotificationPrefs(models.Model):
+    investor = models.OneToOneField(
+        Investor,
+        on_delete=models.CASCADE,
+        related_name='investor_notice_prefs',
+        null=True
+    )
+    # preferences for Notifications about Startups' actions on PROJECTS
+    email_project_profile_change = models.BooleanField(default=True, verbose_name='Email if Project profile changes')
+    push_project_profile_change = models.BooleanField(default=True, verbose_name='Push if Project profile changes')
+    
+    # preferences for Notifications about Startups' actions on STARTUPS
+    email_startup_profile_update = models.BooleanField(default=True, verbose_name='Email if Startup profile updates')
+    push_startup_profile_update = models.BooleanField(default=True, verbose_name='Push if Startup profile updates')
