@@ -1,8 +1,44 @@
+"""
+Module for testing notification-related functionalities in the Django application.
+
+This module contains a `NotificationsTestCase` class that extends Django's `TestCase`
+and provides various methods to test the creation, update, and deletion of notifications
+related to projects, startups, and investors.
+
+Classes:
+    - NotificationsTestCase: A TestCase class for testing notification-related functionalities.
+
+Functions:
+    - create_object(data, url_name, token): Helper method to create an object via an API endpoint
+     using the provided data.
+    - get_notification_count(self, trigger): Helper function to get the count of notifications
+     based on trigger.
+    - setUpTestData(cls): Set up test data for the test case.
+    - setUp(self): Setup that is executed before each test case.
+    - authenticate(self, actor_index): Helper method to set the credentials for a specific user.
+    - test_follow_project_creates_notification(self): Test case to check if following a project
+    creates a notification.
+    - test_unfollow_project_creates_notification(self): Test case to check if unfollowing a project
+    creates a notification.
+    - test_subscription_creates_notification(self): Test case to check if offering a stake in the
+     project creates a notification.
+    - test_turn_off_email_notifications(self): Test turning off email notifications.
+    - test_turn_off_in_app_notifications(self): Test turning off in-app notifications.
+    - test_turn_off_all_notifications(self): Test turning off all notifications.
+    - test_unauthorized_user_cannot_follow_project(self): Test case to check if an unauthorized user
+     cannot follow a project.
+    - test_unauthorized_user_cannot_subscribe_project(self): Test case to check if an unauthorized
+     user cannot subscribe to a project.
+
+This module leverages Django's testing framework and Django REST framework for API testing.
+It uses `APIClient` for making authenticated API requests and `RefreshToken` for generating
+JWT tokens for user authentication.
+"""
+
 from django.test import TestCase
 from django.urls import reverse
 from django.db import transaction
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import status
 from rest_framework.test import APIClient
 from users.models import UserRoleCompany, CustomUser, UserStartup, UserInvestor
 from investors.models import Investor
@@ -158,7 +194,8 @@ class NotificationsTestCase(TestCase):
         """
         Helper method to set the credentials for a specific user.
         """
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[actor_index]}@user.com'])
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[actor_index]}@user.com'])
 
     def test_follow_project_creates_notification(self):
         """
