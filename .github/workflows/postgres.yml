@@ -9,7 +9,7 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_DB: postgres
+          POSTGRES_DB: test_db
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: >-
@@ -19,6 +19,12 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+          
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
