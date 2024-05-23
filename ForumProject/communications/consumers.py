@@ -111,3 +111,35 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def user_leave(self, event):
         await self.send(text_data=json.dumps(event))
 
+
+class ChatNotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        if not self.scope['user'].is_authenticated:
+            await self.close()
+            return
+
+        self.room_group_name = f'chat_notifications_{self.scope["user"].id}'
+
+        # Join room group
+        await self.channel_layer.group_add(
+            self.room_group_name,
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        # Leave room group
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
+
+    # Receive message from room group
+    async def send_chat_notification(self, event):
+        chat_notification = event['chat_notification']
+
+        # Send message to WebSocket
+        await self.send(text_data=json.dumps({
+            'chat_notification': chat_notification
+        }))
+
