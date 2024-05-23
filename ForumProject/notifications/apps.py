@@ -7,6 +7,4 @@ class NotificationsConfig(AppConfig):
 
     def ready(self):
         import notifications.signals
-        import notifications.signals_startup
-        import notifications.signals_investor
 

@@ -39,13 +39,19 @@ class NotificationListView(generics.ListAPIView):
 
 class NotificationPrefsViewSet(viewsets.ModelViewSet):
     """
-    TODO
+    ViewSet for managing notification preferences for Investors and Startups.
+
+    Permission classes: IsStartupCompanySelected | IsInvestorCompanySelected
     """
     permission_classes = [IsStartupCompanySelected | IsInvestorCompanySelected]
 
     def get_queryset(self):
         """
-        TODO
+        Get the queryset of notification preferences based on the user role.
+
+        Returns:
+            Queryset: InvestorNotificationPrefs if the user is an investor, 
+                      StartupNotificationPrefs if the user is a startup.
         """
         user_role = self.request.user.user_info.role
         if user_role == 'investor':
@@ -54,7 +60,11 @@ class NotificationPrefsViewSet(viewsets.ModelViewSet):
     
     def get_serializer_class(self):
         """
-        TODO
+        Get the serializer class based on the user role.
+
+        Returns:
+            Serializer class: InvestorNotificationPrefsSerializer if the user is an investor,
+                              StartupNotificationPrefsSerializer if the user is a startup.
         """
         user_role = self.request.user.user_info.role
         if user_role == 'investor':
@@ -64,7 +74,15 @@ class NotificationPrefsViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        TODO
+        Retrieve notification preferences for the authenticated user's company.
+
+        Args:
+            request: The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Response: Serialized notification preferences data or an error message.
         """
         user_role =  request.user.user_info.role.capitalize()
         company_id = request.user.user_info.company_id
@@ -90,7 +108,15 @@ class NotificationPrefsViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         """
-        TODO
+        Update notification preferences for the authenticated user's company.
+
+        Args:
+            request: The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Response: Serialized updated notification preferences data or an error message.
         """
         user_role =  request.user.user_info.role.capitalize()
         company_id = request.user.user_info.company_id

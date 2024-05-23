@@ -22,14 +22,10 @@ class StartupNotificationPrefsAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'startup',
-        'email_project_followers_change',
-        'email_project_subscription_change',
-        'push_project_followers_change',
-        'push_project_subscription_change',
-        'email_startup_subscribed',
-        'email_startup_unsubscribed',
-        'push_startup_subscribed',
-        'push_startup_unsubscribed'
+        'email_project_on_investor_interest_change',
+        'push_project_on_investor_interest_change',
+        'email_startup_on_investor_interest_change',
+        'push_startup_on_investor_interest_change'
     ]
 
 

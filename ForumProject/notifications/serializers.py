@@ -28,11 +28,11 @@ class StartupNotificationPrefsSerializer(serializers.ModelSerializer):
     Serializes StartupNotificationPrefs instances for API representation.
 
     Attributes:
-        startup_id (int): ID of the startup associated with the notification preferences.
-        email_on_followers_change (bool): Whether to send email notifications on followers change.
-        email_on_share_subscription (bool): Whether to send email notifications on share subscription change.
-        in_app_on_followers_change (bool): Whether to send in-app notifications on followers change.
-        in_app_on_share_subscription (bool): Whether to send in-app notifications on share subscription change.
+        startup_id (int): ID of the associated startup.
+        email_project_on_investor_interest_change (bool): Email preference for project on investor interest change.
+        push_project_on_investor_interest_change (bool): Push notification preference for project on investor interest change.
+        email_startup_on_investor_interest_change (bool): Email preference for startup on investor interest change.
+        push_startup_on_investor_interest_change (bool): Push notification preference for startup on investor interest change.
     """
     startup_id = serializers.SerializerMethodField()
 
@@ -51,19 +51,24 @@ class StartupNotificationPrefsSerializer(serializers.ModelSerializer):
         model = StartupNotificationPrefs
         fields = [
             'startup_id',
-            'email_project_followers_change',
-            'email_project_subscription_change',
-            'push_project_followers_change',
-            'push_project_subscription_change',
-            'email_startup_subscribed',
-            'email_startup_unsubscribed',
-            'push_startup_subscribed',
-            'push_startup_unsubscribed'
+            'email_project_on_investor_interest_change',
+            'push_project_on_investor_interest_change',
+            'email_startup_on_investor_interest_change',
+            'push_startup_on_investor_interest_change'
         ]
 
 class InvestorNotificationPrefsSerializer(serializers.ModelSerializer):
     """
-    TODO
+    Serializer for the InvestorNotificationPrefs model.
+
+    Serializes InvestorNotificationPrefs instances for API representation.
+
+    Attributes:
+        investor_id (int): ID of the associated investor.
+        email_project_profile_change (bool): Email preference for project profile changes.
+        push_project_profile_change (bool): Push notification preference for project profile changes.
+        email_startup_profile_update (bool): Email preference for startup profile updates.
+        push_startup_profile_update (bool): Push notification preference for startup profile updates.
     """
     investor_id = serializers.SerializerMethodField()
 
