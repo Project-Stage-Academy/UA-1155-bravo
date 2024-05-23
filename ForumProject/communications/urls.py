@@ -11,4 +11,7 @@ urlpatterns = [
     path('messages/', SendMessageView.as_view(), name='send-message'),
     path('conversations/<int:conversation_id>/messages/', ListMessagesView.as_view(), name='list-messages'),
     path('api/load-messages/<int:room_id>/', load_messages, name='load_messages'),
+    path('api/conversations/', views.create_conversation, name='create-conversation'),
+    path('api/messages/', views.send_message, name='send-message'),
+    path('api/conversations/<int:conversation_id>/messages/', views.ListMessagesView.as_view(), name='list-messages'),
 ]

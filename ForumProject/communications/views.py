@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
+
 from .serializers import RoomSerializer, MessageSerializer
 from .models import Room, Message
 from rest_framework.decorators import api_view
@@ -12,6 +13,51 @@ from rest_framework import generics
 from users.models import UserRoleCompany, UserStartup
 from django.core.signing import BadSignature
 from .models import Room, Message
+
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .serializers import CreateConversationSerializer, RoomSerializer, MessageSerializer, ListMessagesSerializer
+
+from rest_framework.generics import ListAPIView
+
+
+@api_view(['POST'])
+def create_conversation(request):
+    serializer = CreateConversationSerializer(data=request.data)
+    if serializer.is_valid():
+        participants = serializer.validated_data['participants']
+        participant_names = "_".join(map(str, sorted(participants)))
+        room_name = f"chat_{participant_names}"
+        room, created = Room.objects.get_or_create(name=room_name)
+        if created:
+            room.online.set(User.objects.filter(id__in=participants))
+            room.save()
+        room_serializer = RoomSerializer(room)
+        return Response(room_serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from .serializers import SendMessageSerializer
+
+@api_view(['POST'])
+def send_message(request):
+    serializer = SendMessageSerializer(data=request.data)
+    if serializer.is_valid():
+        conversation_id = serializer.validated_data['conversation_id']
+        text = serializer.validated_data['text']
+        room = get_object_or_404(Room, id=conversation_id)
+        user = request.user
+        message = Message.objects.create(room=room, user=user, content=text)
+        message_serializer = MessageSerializer(message)
+        return Response(message_serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ListMessagesView(ListAPIView):
+    serializer_class = ListMessagesSerializer
+
+    def get_queryset(self):
+        conversation_id = self.kwargs['conversation_id']
+        return Message.objects.filter(room__id=conversation_id)
 from django_ratelimit.decorators import ratelimit
 import logging
 from django.http import JsonResponse
@@ -34,9 +80,9 @@ def index_view(request):
         startups = UserStartup.objects.all().values_list('customuser', flat=True)
         users = User.objects.filter(id__in=startups).exclude(id=request.user.id)
     rooms_list = Room.objects.filter(name__contains=str(request.user.id))
-    
+
     logger.info(f"User  with email {request.user.email} accessed the index page")
-   
+
     return render(request, 'index.html', {
         'rooms': rooms_list, 'users': users
     })
