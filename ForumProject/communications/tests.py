@@ -1,8 +1,14 @@
+import asyncio
+
+from channels.layers import get_channel_layer
+from channels.testing import WebsocketCommunicator
+from django.contrib.auth.models import AnonymousUser
 from django.test import TestCase, Client
 from django.urls import reverse
-from rest_framework_simplejwt.tokens import RefreshToken
 
+from communications.consumers import ChatConsumer
 from communications.models import Room
+from communications.utils import get_room, get_user_first_name
 from investors.models import Investor
 from startups.models import Startup
 from users.models import CustomUser, UserStartup, UserRoleCompany, UserInvestor
@@ -109,3 +115,79 @@ class CommunicationsViewTest(TestCase):
         login = self.client.login(email='startup@example.com', password='password')
         response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': self.investor_user.id}))
         self.assertEqual(response.status_code, 200)
+
+
+class ChatConsumerTest(TestCase):
+
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email='chat_user@example.com',
+            first_name='John',
+            last_name='Doe',
+            phone_number='+3801234567',
+            password='password',
+            is_active=True
+        )
+        self.room = Room.objects.create(name='chat_2_1')
+        self.client.login(email='chat_user@example.com', password='password')
+
+    async def test_connect_authenticated_user(self):
+        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/chat_2_1/")
+        communicator.scope['user'] = self.user
+        communicator.scope['url_route'] = {
+            'kwargs': {
+                'room_name': 'chat_2_1'
+            }
+        }
+        connected, subprotocol = await communicator.connect()
+        self.assertTrue(connected)
+
+        response = await communicator.receive_json_from()
+        self.assertEqual(response['type'], 'user_list')
+        await communicator.disconnect()
+
+    async def test_connect_unauthenticated_user(self):
+        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/chat_2_1/")
+        communicator.scope['user'] = AnonymousUser()
+
+        connected, subprotocol = await communicator.connect()
+        self.assertFalse(connected)
+
+    async def test_receive_message(self):
+        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/chat_2_1/")
+        communicator.scope['user'] = self.user
+        communicator.scope['url_route'] = {
+            'kwargs': {
+                'room_name': 'chat_2_1'
+            }
+        }
+        await communicator.connect()
+
+        response = await communicator.receive_json_from()
+        self.assertEqual(response['type'], 'user_list')
+
+        response = await communicator.receive_json_from()
+        self.assertEqual(response['type'], 'user_join')
+
+        message = {'message': 'Hello, world!'}
+        await communicator.send_json_to(message)
+
+        # await asyncio.sleep(1)
+
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(
+            f'chat_2_1',
+            {
+                'type': 'chat_message',
+                'user': await get_user_first_name(self.user),
+                'message': message['message'],
+            }
+        )
+
+        response = await communicator.receive_json_from()
+        self.assertEqual(response['type'], 'chat_message')
+        self.assertEqual(response['message'], 'Hello, world!')
+
+        await communicator.disconnect()
+
+
