@@ -131,15 +131,15 @@ class ChatConsumerTest(TestCase):
         self.room = Room.objects.create(name='chat_2_1')
         self.client.login(email='chat_user@example.com', password='password')
 
-    async def test_connect_authenticated_user(self):
+    async def connect_to_chat(self, user):
         communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/chat_2_1/")
-        communicator.scope['user'] = self.user
-        communicator.scope['url_route'] = {
-            'kwargs': {
-                'room_name': 'chat_2_1'
-            }
-        }
+        communicator.scope['user'] = user
+        communicator.scope['url_route'] = {'kwargs': {'room_name': 'chat_2_1'}}
         connected, subprotocol = await communicator.connect()
+        return communicator, connected
+
+    async def test_connect_authenticated_user(self):
+        communicator, connected = await self.connect_to_chat(self.user)
         self.assertTrue(connected)
 
         response = await communicator.receive_json_from()
@@ -147,21 +147,11 @@ class ChatConsumerTest(TestCase):
         await communicator.disconnect()
 
     async def test_connect_unauthenticated_user(self):
-        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/chat_2_1/")
-        communicator.scope['user'] = AnonymousUser()
-
-        connected, subprotocol = await communicator.connect()
+        communicator, connected = await self.connect_to_chat(AnonymousUser())
         self.assertFalse(connected)
 
     async def test_receive_message(self):
-        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/chat_2_1/")
-        communicator.scope['user'] = self.user
-        communicator.scope['url_route'] = {
-            'kwargs': {
-                'room_name': 'chat_2_1'
-            }
-        }
-        await communicator.connect()
+        communicator, connected = await self.connect_to_chat(self.user)
 
         response = await communicator.receive_json_from()
         self.assertEqual(response['type'], 'user_list')
@@ -171,8 +161,6 @@ class ChatConsumerTest(TestCase):
 
         message = {'message': 'Hello, world!'}
         await communicator.send_json_to(message)
-
-        # await asyncio.sleep(1)
 
         channel_layer = get_channel_layer()
         await channel_layer.group_send(
