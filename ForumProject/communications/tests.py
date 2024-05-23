@@ -3,7 +3,7 @@ import asyncio
 from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth.models import AnonymousUser
-from django.test import TestCase, Client
+from django.test import TestCase, Client, TransactionTestCase
 from django.urls import reverse
 
 from communications.consumers import ChatConsumer
@@ -37,35 +37,18 @@ class CommunicationsViewTest(TestCase):
             is_active=True
         )
 
-    def setUp(self):
-        '''
-        Setup that is executed before each test case.
-        '''
-        self.client = Client()
-
-        # Sample data for testing
-        self.startup = Startup.objects.create(startup_name='Django startups',
+        cls.startup = Startup.objects.create(startup_name='Django startups',
                                               startup_industry='IT',
                                               startup_phone='+3801234567',
                                               startup_country='UA',
                                               startup_city='Lviv',
                                               startup_address='I Franka 123')
 
-        UserStartup.objects.create(customuser=self.startup_user, startup=self.startup, startup_role_id=1)
-        UserRoleCompany.objects.create(user=self.startup_user, role='startup', company_id=self.startup.id)
-
-        # Sample data for testing
-        self.startup_data = {
-            'startup_name': 'Django Dribblers',
-            'startup_industry': 'IT',
-            'startup_phone': '+3801234562',
-            'startup_country': 'UA',
-            'startup_city': 'Lviv',
-            'startup_address': 'I Franka 123'
-        }
+        UserStartup.objects.create(customuser=cls.startup_user, startup=cls.startup, startup_role_id=1)
+        UserRoleCompany.objects.create(user=cls.startup_user, role='startup', company_id=cls.startup.id)
 
         # Create investor profile
-        self.investor_profile = Investor.objects.create(
+        cls.investor_profile = Investor.objects.create(
             investor_name='Test Investor',
             investor_industry='IT',
             investor_phone='+3801234567',
@@ -75,8 +58,21 @@ class CommunicationsViewTest(TestCase):
         )
 
         # Associate investor profile with investor user and assign role
-        UserInvestor.objects.create(customuser=self.investor_user, investor=self.investor_profile, investor_role_id=1)
-        UserRoleCompany.objects.create(user=self.investor_user, role='investor', company_id=self.investor_profile.id)
+        UserInvestor.objects.create(customuser=cls.investor_user, investor=cls.investor_profile, investor_role_id=1)
+        UserRoleCompany.objects.create(user=cls.investor_user, role='investor', company_id=cls.investor_profile.id)
+
+        cls.client = Client()
+
+        # Sample data for testing
+        cls.startup_data = {
+            'startup_name': 'Django Dribblers',
+            'startup_industry': 'IT',
+            'startup_phone': '+3801234562',
+            'startup_country': 'UA',
+            'startup_city': 'Lviv',
+            'startup_address': 'I Franka 123'
+        }
+
 
     def tearDown(self):
         '''
@@ -93,6 +89,7 @@ class CommunicationsViewTest(TestCase):
     def test_view_chats(self):
         login = self.client.login(email='investor@example.com', password='password')
         response = self.client.get(reverse('communications:chat-index'))
+        self.assertTrue(login)
         self.assertEqual(response.status_code, 200)
 
     def test_login_required_chats(self):
@@ -101,19 +98,23 @@ class CommunicationsViewTest(TestCase):
 
     def test_investor_starts_chat(self):
         login = self.client.login(email='investor@example.com', password='password')
-        response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': self.startup_user.id}))
+        response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': CommunicationsViewTest.startup_user.id}))
+        self.assertTrue(login)
         self.assertEqual(response.status_code, 200)
 
     def test_startup_starts_chat(self):
         login = self.client.login(email='startup@example.com', password='password')
-        response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': self.investor_user.id}))
+        response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': CommunicationsViewTest.investor_user.id}))
+        self.assertTrue(login)
         self.assertEqual(response.status_code, 403)
 
     def test_startup_answer_chat(self):
         login_investor = self.client.login(email='investor@example.com', password='password')
-        create_chat = self.client.get(reverse('communications:chat-room', kwargs={'user_id': self.startup_user.id}))
+        create_chat = self.client.get(reverse('communications:chat-room', kwargs={'user_id': CommunicationsViewTest.startup_user.id}))
         login = self.client.login(email='startup@example.com', password='password')
-        response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': self.investor_user.id}))
+        response = self.client.get(reverse('communications:chat-room', kwargs={'user_id': CommunicationsViewTest.investor_user.id}))
+        self.assertTrue(login)
+        self.assertTrue(login_investor)
         self.assertEqual(response.status_code, 200)
 
 
