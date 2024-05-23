@@ -13,7 +13,7 @@ class Notification(models.Model):
         # with this trigger, owners of Investors that subscribed for Startup should receive a Notification
         ('Startup profile updated', 'Startup profile updated'),
         # with this trigger, Startup owners should receive a Notification
-        ('Startup sibscribers list changed', 'Startup sibscribers list changed'),
+        ('Startup subscribers list changed', 'Startup subscribers list changed'),
     ]
     # Choices for the initiator field
     INITIATOR_CHOICES = [
@@ -68,12 +68,12 @@ class StartupNotificationPrefs(models.Model):
     active_email_preferences = models.CharField(
         max_length=100, 
         blank=True, 
-        default='Project follower list or subscription share change, Startup sibscribers list changed'
+        default='Project follower list or subscription share change, Startup subscribers list changed'
     )
     active_push_preferences = models.CharField(
         max_length=100, 
         blank=True, 
-        default='Project follower list or subscription share change, Startup sibscribers list changed'
+        default='Project follower list or subscription share change, Startup subscribers list changed'
     )
 
     def update_active_preferences(self):
@@ -82,11 +82,11 @@ class StartupNotificationPrefs(models.Model):
         if self.email_project_on_investor_interest_change:
             email_preferences.append('Project follower list or subscription share change')
         if self.email_startup_on_investor_interest_change:
-            email_preferences.append('Startup sibscribers list changed')
+            email_preferences.append('Startup subscribers list changed')
         if self.push_project_on_investor_interest_change:
             push_preferences.append('Project follower list or subscription share change')
         if self.push_startup_on_investor_interest_change:
-            push_preferences.append('Startup sibscribers list changed')
+            push_preferences.append('Startup subscribers list changed')
         self.active_email_preferences = ', '.join(email_preferences)
         self.active_push_preferences = ', '.join(push_preferences)
 

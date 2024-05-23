@@ -157,7 +157,7 @@ def startup_followed(sender, instance, created=None, **kwargs):
         created (bool, optional): A boolean indicating whether a new instance was created.
         **kwargs: Additional keyword arguments.
     """
-    trigger = 'Startup sibscribers list changed'
+    trigger = 'Startup subscribers list changed'
     addressee = instance.startup
     email_prefs_list = [pref.strip() for pref in addressee.startup_notice_prefs.active_email_preferences.split(',')]
     push_prefs_list = [pref.strip() for pref in addressee.startup_notice_prefs.active_push_preferences.split(',')]
