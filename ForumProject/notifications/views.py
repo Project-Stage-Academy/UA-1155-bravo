@@ -1,8 +1,12 @@
 from rest_framework import generics, viewsets, status
 from users.permissions import IsInvestorRole
-from notifications.models import Notification, NotificationPreferences
-from notifications.serializers import NotificationSerializer, NotificationPreferencesSerializer
-from users.permissions import IsStartupCompanySelected
+from notifications.models import Notification, StartupNotificationPrefs, InvestorNotificationPrefs
+from notifications.serializers import (
+    NotificationSerializer, 
+    StartupNotificationPrefsSerializer, 
+    InvestorNotificationPrefsSerializer
+)
+from users.permissions import IsStartupCompanySelected, IsInvestorCompanySelected
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
 from django.db import IntegrityError
@@ -33,75 +37,106 @@ class NotificationListView(generics.ListAPIView):
         return Notification.objects.filter(investor__userinvestor__customuser_id=user_id)
     
 
-class NotificationsPreferencesViewSet(viewsets.ModelViewSet):
+class NotificationPrefsViewSet(viewsets.ModelViewSet):
     """
-    Viewset for managing notification preferences of a startup.
+    ViewSet for managing notification preferences for Investors and Startups.
 
-    Retrieves and updates notification preferences associated with the authenticated startup.
+    Permission classes: IsStartupCompanySelected | IsInvestorCompanySelected
     """
-    # queryset = NotificationPreferences
-    queryset = NotificationPreferences.objects.all()
-    serializer_class = NotificationPreferencesSerializer
-    permission_classes = [IsStartupCompanySelected]
+    permission_classes = [IsStartupCompanySelected | IsInvestorCompanySelected]
+
+    def get_queryset(self):
+        """
+        Get the queryset of notification preferences based on the user role.
+
+        Returns:
+            Queryset: InvestorNotificationPrefs if the user is an investor, 
+                      StartupNotificationPrefs if the user is a startup.
+        """
+        user_role = self.request.user.user_info.role
+        if user_role == 'investor':
+            return InvestorNotificationPrefs.objects.all()
+        return StartupNotificationPrefs.objects.all()
+    
+    def get_serializer_class(self):
+        """
+        Get the serializer class based on the user role.
+
+        Returns:
+            Serializer class: InvestorNotificationPrefsSerializer if the user is an investor,
+                              StartupNotificationPrefsSerializer if the user is a startup.
+        """
+        user_role = self.request.user.user_info.role
+        if user_role == 'investor':
+            return InvestorNotificationPrefsSerializer
+        return StartupNotificationPrefsSerializer
+    
 
     def retrieve(self, request, *args, **kwargs):
         """
-        Retrieves notification preferences for the authenticated startup.
-
-        Retrieves the notification preferences associated with the authenticated startup based on the 
-        startup ID from the request. If preferences are not found for the startup, a 400 error response is 
-        returned.
+        Retrieve notification preferences for the authenticated user's company.
 
         Args:
-        - request (Request): The incoming GET request.
-        - args: Additional arguments.
-        - kwargs: Additional keyword arguments.
+            request: The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
 
         Returns:
-        - Response: Response containing the retrieved notification preferences or a 400 error if preferences 
-        are not found for the startup.
+            Response: Serialized notification preferences data or an error message.
         """
-        startup_id = request.user.user_info.company_id
-        if not startup_id:
-            return Response('Notifications Preferences are specific to each Startup. Please first select a Startup',
+        user_role =  request.user.user_info.role.capitalize()
+        company_id = request.user.user_info.company_id
+        if not company_id:
+            return Response(f'Notifications Preferences are specific to each {user_role}. Please first select {user_role}',
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-        try:
-            preferences = NotificationPreferences.objects.get(startup_id=startup_id)
-        except NotificationPreferences.DoesNotExist:
-            raise NotFound("Preferences for this startup were not found.")
-        
-        serializer = self.get_serializer(preferences, context={'startup_id': startup_id})
+        if user_role == 'Investor':
+            try:
+                preferences = InvestorNotificationPrefs.objects.get(investor_id=company_id)
+            except InvestorNotificationPrefs.DoesNotExist:
+                raise NotFound("Preferences for this Investor were not found.")
+            serializer = self.get_serializer(preferences, context={'investor_id': company_id})
+        else: 
+            try:
+                preferences = StartupNotificationPrefs.objects.get(startup_id=company_id)
+            except StartupNotificationPrefs.DoesNotExist:
+                raise NotFound("Preferences for this Startup were not found.")
+            
+            serializer = self.get_serializer(preferences, context={'startup_id': company_id})
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
         """
-        Updates notification preferences for the authenticated startup.
-
-        If any of the fields are not boolean or are not listed in the model `NotificationPreferences`, 
-        a 400 error response is returned. It is okay if only some of the fields from `NotificationPreferences` 
-        are included in the body of the PUT request (in which case the values of fields not included 
-        should not be amended).
+        Update notification preferences for the authenticated user's company.
 
         Args:
-        - request (Request): The incoming PUT request.
-        - args: Additional arguments.
-        - kwargs: Additional keyword arguments.
+            request: The HTTP request object.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
 
         Returns:
-        - Response: Response indicating success or failure of the update operation.
+            Response: Serialized updated notification preferences data or an error message.
         """
-        startup_id = request.user.user_info.company_id
-        if not startup_id:
-            return Response("Please first select Startup to set notifications preferences for it.", status=status.HTTP_400_BAD_REQUEST)
-        try:
-            instance = NotificationPreferences.objects.get(startup_id=startup_id)
-        except NotificationPreferences.DoesNotExist:
-            return Response("Preferences for this startup were not found.", status=status.HTTP_400_BAD_REQUEST)
-        
-        partial = kwargs.pop('partial', False)
-        serializer = self.get_serializer(instance, data=request.data, partial=partial, context={'startup_id': startup_id})
+        user_role =  request.user.user_info.role.capitalize()
+        company_id = request.user.user_info.company_id
+        if not company_id:
+            return Response(f"Please first select {user_role} to set notifications preferences for it.", status=status.HTTP_400_BAD_REQUEST)
+
+        if user_role == 'Investor':
+            try:
+                instance = InvestorNotificationPrefs.objects.get(investor_id=company_id)
+            except InvestorNotificationPrefs.DoesNotExist:
+                return Response("Preferences for this Investor were not found.", status=status.HTTP_400_BAD_REQUEST)
+            partial = kwargs.pop('partial', False)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial, context={'investor_id': company_id})
+        else:
+            try:
+                instance = StartupNotificationPrefs.objects.get(startup_id=company_id)
+            except StartupNotificationPrefs.DoesNotExist:
+                return Response("Preferences for this Startup were not found.", status=status.HTTP_400_BAD_REQUEST)
+            partial = kwargs.pop('partial', False)
+            serializer = self.get_serializer(instance, data=request.data, partial=partial, context={'startup_id': company_id})
         
         try:
             serializer.is_valid(raise_exception=True)
