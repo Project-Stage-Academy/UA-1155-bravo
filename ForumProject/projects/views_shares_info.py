@@ -1,16 +1,27 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import Project, InvestorProject
 from .serializers import InvestorProjectSerializer
+from users.permissions import (IsStartupRole, IsStartupCompanySelected)
+from rest_framework import status
 
 
 @api_view(['GET'])
+@permission_classes([IsStartupRole, IsStartupCompanySelected])
 def project_investor_shares(request, project_id):
     """
     View to get all investors and their shares for a specific project,
     along with the total share.
+
+    Parameters:
+        request (HttpRequest): The HTTP request object.
+        project_id (int): The ID of the project.
+
+    Returns:
+        Response: A JSON response containing project details, investors' shares, and the total share.
     """
+
     project = get_object_or_404(Project, pk=project_id)
     investor_projects = InvestorProject.objects.filter(project=project)
 
@@ -27,4 +38,4 @@ def project_investor_shares(request, project_id):
         'total_share': total_funding
     }
 
-    return Response(data)
+    return Response(data, status=status.HTTP_200_OK)

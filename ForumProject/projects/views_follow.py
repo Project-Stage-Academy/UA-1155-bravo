@@ -88,8 +88,10 @@ def subscription(request, project_id, share):
 
     Notes:
         - If the share is not within the valid range, an HTTP 400 response is returned.
+        - If the new share combined with existing shares exceeds 100%, an HTTP 400 response
+          is returned with the available share percentage.
         - If the investor is already subscribed, the share value is updated
-        and an HTTP 200 response is returned.
+          and an HTTP 200 response is returned.
         - If no record exists, a new subscription is created, and an HTTP 201 response is returned.
     """
 
@@ -101,9 +103,8 @@ def subscription(request, project_id, share):
     
     investor_id = request.user.user_info.company_id
 
-    # Sum the shares of all investors for the project
-    total_share = InvestorProject.objects.filter(project_id=project_id).aggregate(Sum('share'))[
-                      'share__sum'] or 0
+    # Get the total share for the project
+    total_share = InvestorProject.get_total_funding(project_id)
 
     # Check if the new share exceeds the total allowable share
     try:
@@ -114,8 +115,9 @@ def subscription(request, project_id, share):
         pass
 
     if total_share + share > 100:
+        available_share = 100 - total_share
         return Response(
-            {"error": "Total share for the project cannot exceed 100%"},
+            {"error": f"Total share for the project cannot exceed 100%. Available share: {available_share}%"},
             status=status.HTTP_400_BAD_REQUEST,
         )
     # Check if an InvestorProject with the given project_id and investor_id already exists
