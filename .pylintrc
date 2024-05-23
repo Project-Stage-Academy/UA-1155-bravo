@@ -515,6 +515,8 @@ logging-modules=logging
 
 [MASTER]
 load-plugins=pylint_django
+# Valid values: yes, y, true, no, n, false
+init-import = no  # Ensure this line has a valid value
 
 
 
@@ -813,7 +815,7 @@ ignored-argument-names=_.*|^ignored_|^unused_
 
 
 # Tells whether we should check for unused import in __init__ files.
-init-import=nog
+init-import=no
 
 
 # List of qualified module names which can have objects that can redefine
