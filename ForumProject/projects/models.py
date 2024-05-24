@@ -169,10 +169,13 @@ class InvestorProject(models.Model):
         Returns:
             float: The total amount of funding.
         """
-        total_funding = cls.objects.filter(
-            project_id=project_id).aggregate(total=models.Sum('share'))['total']
-
-        return float(total_funding or 0)
+        try:
+            total_funding = cls.objects.filter(
+                project_id=project_id).aggregate(total=models.Sum('share'))['total']
+            return float(total_funding or 0)
+        except Exception as e:
+            print(f"An error occurred while calculating total funding: {e}")
+        return 0.0
         
 
 class ProjectLog(models.Model):
