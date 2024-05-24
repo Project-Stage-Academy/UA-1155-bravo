@@ -19,3 +19,15 @@ EMAIL_HOST_USER = [host-user]
 EMAIL_HOST_PASSWORD = [host-password]
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+
+#### Write credentials for superuser
+DJANGO_SUPERUSER_EMAIL=[email address]
+DJANGO_SUPERUSER_PASSWORD=[password]
+
+#### Redis config for docker
+#### if you run project without docker use '127.0.0.1' this host in your local_settings
+REDIS_HOST = 'redis'
+REDIS_PORT = 6379
+
+#### cryptographic key for encrypting messages, one for the entire database
+CRYPTOGRAPHY_KEY= 'CRYPTOGRAPHY_KEY'

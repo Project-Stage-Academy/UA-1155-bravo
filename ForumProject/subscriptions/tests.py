@@ -467,4 +467,3 @@ class SubscriptionTests(APITestCase):
         self.assertEqual(first_notification_data['trigger'], expected_data2['trigger'])
         self.assertEqual(first_notification_data['initiator'], expected_data2['initiator'])
 
-

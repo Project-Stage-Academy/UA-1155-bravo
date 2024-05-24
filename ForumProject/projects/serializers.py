@@ -1,9 +1,7 @@
 from rest_framework import serializers
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
-
+from django.core.exceptions import ObjectDoesNotExist
 from startups.models import Startup
 from .models import Project, ProjectFiles, InvestorProject, ProjectLog
-from django.core.exceptions import ValidationError
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -46,11 +44,13 @@ class ProjectSerializer(serializers.ModelSerializer):
             
     def create(self, validated_data):
         '''
-            Create a new Project instance and associate it with a specific Startup.
+        Create a new Project instance and associate it with a specific Startup.
 
         This method handles the creation of a new Project instance based on the validated data from the request. 
         It ensures that the user has a selected Startup company, and checks whether the specified Startup exists 
         and belongs to the current user. If all validations pass, it creates and returns a new Project.
+        
+        It also validates the uniqueness of the project name using the `validate_project_name` method.
 
         Parameters:
             validated_data (dict): Data validated by the serializer.
@@ -75,9 +75,8 @@ class ProjectSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Startup with ID {startup_id} does not exist or does not belong to you.")
         validated_data['startup'] = startup
         
-        # Create a new project and pass user_id to the save method
+        # Create a new project
         project = Project(**validated_data)
-        # project.save(user_id=user.pk)
         project.save()
         return project
     
@@ -87,6 +86,8 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         This method updates the attributes of an existing Project with the provided validated data 
         and saves the changes to the database.
+        
+        It also validates the uniqueness of the project name using the `validate_project_name` method.
 
         Parameters:
             instance (Project): The existing Project instance to be updated.

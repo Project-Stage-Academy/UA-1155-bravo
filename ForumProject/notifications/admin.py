@@ -1,5 +1,5 @@
 from django.contrib import admin
-from notifications.models import Notification, NotificationPreferences
+from notifications.models import Notification, StartupNotificationPrefs, InvestorNotificationPrefs
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
@@ -16,15 +16,28 @@ class NotificationAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
     
-@admin.register(NotificationPreferences)
+@admin.register(StartupNotificationPrefs)
 
-class NotificationPreferencesAdmin(admin.ModelAdmin):
+class StartupNotificationPrefsAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'startup',
-        'email_on_followers_change',
-        'email_on_share_subscription',
-        'in_app_on_followers_change',
-        'in_app_on_share_subscription'
+        'email_project_on_investor_interest_change',
+        'push_project_on_investor_interest_change',
+        'email_startup_on_investor_interest_change',
+        'push_startup_on_investor_interest_change'
+    ]
+
+
+@admin.register(InvestorNotificationPrefs)
+
+class InvestorNotificationPrefsAdmin(admin.ModelAdmin):
+    list_display = [
+        'id',
+        'investor',
+        'email_project_profile_change',
+        'push_project_profile_change',
+        'email_startup_profile_update',
+        'push_startup_profile_update'
     ]
 

@@ -114,7 +114,10 @@ class IsCompanySelected(BasePermission):
 
         if not hasattr(request.user, 'user_info'):
             return False
-        
+
+        if not request.user.user_info.company_id:
+            return False
+
         if request.user.user_info.company_id != 0 and request.user.user_info.role == self.ROLE:
             return True
         return False

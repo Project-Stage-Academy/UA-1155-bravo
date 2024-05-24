@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate, login
 from rest_framework_simplejwt.exceptions import TokenError
 import jwt
 from django.conf import settings
@@ -51,7 +52,9 @@ class TokenObtainPairView(BaseTokenObtainPairView):
             Response: The HTTP response object containing the token pairs and cookie.
         """
         response = super().post(request, *args, **kwargs)
-
+        user = authenticate(request, email=request.data.get('email'), password=request.data.get('password'))
+        if user:
+            login(request, user)
         token = response.data.get('access')
         refresh_token = response.data.get('refresh')
 

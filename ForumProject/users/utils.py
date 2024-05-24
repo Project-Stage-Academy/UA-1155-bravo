@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from rest_framework.reverse import reverse
 
+logger = logging.getLogger('django.server')
+
 
 class Util:
     """
