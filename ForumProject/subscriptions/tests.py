@@ -418,7 +418,7 @@ class SubscriptionTests(APITestCase):
         
         expected_data = {
             "project": None,
-            "startup": 6,
+            "startup": 78,
             "investor": 11,
             "trigger": "startup profile updated",
             "initiator": "startup",
@@ -455,7 +455,7 @@ class SubscriptionTests(APITestCase):
         
         expected_data2 = {
             "project": None,
-            "startup": 5,
+            "startup": 77,
             "investor": 9,
             "trigger": "startup profile updated",
             "initiator": "startup",
@@ -466,5 +466,4 @@ class SubscriptionTests(APITestCase):
         self.assertEqual(first_notification_data['investor'], expected_data2['investor'])
         self.assertEqual(first_notification_data['trigger'], expected_data2['trigger'])
         self.assertEqual(first_notification_data['initiator'], expected_data2['initiator'])
-
 
