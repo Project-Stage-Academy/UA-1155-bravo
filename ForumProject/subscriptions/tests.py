@@ -421,7 +421,7 @@ class SubscriptionTests(APITestCase):
             "startup": 78,
             "investor": 39,
             "trigger": "Startup subscribers list changed",
-            "initiator": "startup",
+            "initiator": "investor",
         }
         first_notification_data = notifications_response.data[0]  
         self.assertEqual(first_notification_data['project'], expected_data['project'])
