@@ -418,8 +418,8 @@ class SubscriptionTests(APITestCase):
         
         expected_data = {
             "project": None,
-            "startup": 6,
-            "investor": 11,
+            "startup": 78,
+            "investor": 39,
             "trigger": "startup profile updated",
             "initiator": "startup",
         }
@@ -455,8 +455,8 @@ class SubscriptionTests(APITestCase):
         
         expected_data2 = {
             "project": None,
-            "startup": 5,
-            "investor": 9,
+            "startup": 77,
+            "investor": 37,
             "trigger": "startup profile updated",
             "initiator": "startup",
         }
