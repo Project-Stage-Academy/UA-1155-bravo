@@ -159,7 +159,7 @@ class InvestorProject(models.Model):
             raise ValidationError("Share percentage must be between 0 and 100.")
 
     @classmethod
-    def get_total_funding(cls, project_id):
+    def get_total_funding(cls, project_id: int) -> float:
         """
         Calculate the total funding from all investors for a specific project.
 
@@ -167,11 +167,12 @@ class InvestorProject(models.Model):
             project_id (int): The ID of the project.
 
         Returns:
-            int: The total amount of funding.
+            float: The total amount of funding.
         """
         total_funding = cls.objects.filter(
             project_id=project_id).aggregate(total=models.Sum('share'))['total']
-        return total_funding or 0
+
+        return float(total_funding or 0)
         
 
 class ProjectLog(models.Model):

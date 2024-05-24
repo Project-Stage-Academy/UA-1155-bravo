@@ -95,7 +95,7 @@ def subscription(request, project_id, share):
         - If no record exists, a new subscription is created, and an HTTP 201 response is returned.
     """
 
-    if share < 0 or share > 100:
+    if float(share) < 0 or float(share) > 100:
         return Response(
             {"error": "Share must be greater between zero and 100"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -114,7 +114,7 @@ def subscription(request, project_id, share):
     except InvestorProject.DoesNotExist:
         pass
 
-    if total_share + share > 100:
+    if total_share + float(share) > 100:
         available_share = 100 - total_share
         return Response(
             {"error": f"Total share for the project cannot exceed 100%. Available share: {available_share}%"},
