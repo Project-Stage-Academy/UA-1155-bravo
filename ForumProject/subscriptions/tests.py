@@ -420,7 +420,7 @@ class SubscriptionTests(APITestCase):
             "project": None,
             "startup": 78,
             "investor": 39,
-            "trigger": "startup profile updated",
+            "trigger": "Startup subscribers list changed",
             "initiator": "startup",
         }
         first_notification_data = notifications_response.data[0]  
@@ -457,7 +457,7 @@ class SubscriptionTests(APITestCase):
             "project": None,
             "startup": 77,
             "investor": 37,
-            "trigger": "startup profile updated",
+            "trigger": "Startup profile updated",
             "initiator": "startup",
         }
         first_notification_data = notifications_response.data[1]  
