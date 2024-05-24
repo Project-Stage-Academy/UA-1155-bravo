@@ -3,6 +3,17 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django_cryptography.fields import encrypt
 
+
+User = get_user_model()
+
+class ChatNotification(models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.ForeignKey('communications.Message', on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'Chat notification for {self.recipient.email}'
+
 class Room(models.Model):
     name = models.CharField(max_length=128)
     online = models.ManyToManyField(to=settings.AUTH_USER_MODEL, blank=True)
@@ -33,8 +44,7 @@ class Room(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.get_online_count()})'
-
-
+    
 class Message(models.Model):
     user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     room = models.ForeignKey(to=Room, on_delete=models.CASCADE)

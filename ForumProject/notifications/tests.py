@@ -1,8 +1,44 @@
+"""
+Module for testing notification-related functionalities in the Django application.
+
+This module contains a `NotificationsTestCase` class that extends Django's `TestCase`
+and provides various methods to test the creation, update, and deletion of notifications
+related to projects, startups, and investors.
+
+Classes:
+    - NotificationsTestCase: A TestCase class for testing notification-related functionalities.
+
+Functions:
+    - create_object(data, url_name, token): Helper method to create an object via an API endpoint
+     using the provided data.
+    - get_notification_count(self, trigger): Helper function to get the count of notifications
+     based on trigger.
+    - setUpTestData(cls): Set up test data for the test case.
+    - setUp(self): Setup that is executed before each test case.
+    - authenticate(self, actor_index): Helper method to set the credentials for a specific user.
+    - test_follow_project_creates_notification(self): Test case to check if following a project
+    creates a notification.
+    - test_unfollow_project_creates_notification(self): Test case to check if unfollowing a project
+    creates a notification.
+    - test_subscription_creates_notification(self): Test case to check if offering a stake in the
+     project creates a notification.
+    - test_turn_off_email_notifications(self): Test turning off email notifications.
+    - test_turn_off_in_app_notifications(self): Test turning off in-app notifications.
+    - test_turn_off_all_notifications(self): Test turning off all notifications.
+    - test_unauthorized_user_cannot_follow_project(self): Test case to check if an unauthorized user
+     cannot follow a project.
+    - test_unauthorized_user_cannot_subscribe_project(self): Test case to check if an unauthorized
+     user cannot subscribe to a project.
+
+This module leverages Django's testing framework and Django REST framework for API testing.
+It uses `APIClient` for making authenticated API requests and `RefreshToken` for generating
+JWT tokens for user authentication.
+"""
+
 from django.test import TestCase
 from django.urls import reverse
 from django.db import transaction
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework import status
 from rest_framework.test import APIClient
 from users.models import UserRoleCompany, CustomUser, UserStartup, UserInvestor
 from investors.models import Investor
@@ -158,7 +194,8 @@ class NotificationsTestCase(TestCase):
         """
         Helper method to set the credentials for a specific user.
         """
-        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[actor_index]}@user.com'])
+        self.client.credentials(
+            HTTP_AUTHORIZATION='Bearer ' + self.tokens[f'{self.actors[actor_index]}@user.com'])
 
     def test_follow_project_creates_notification(self):
         """
@@ -173,7 +210,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, EXPECTED_STATUS['CREATED'])
 
         # Check if a record is added to the Notification table
-        notifications_count = self.get_notification_count('follower(s) list changed')
+        notifications_count = self.get_notification_count('Project follower list or subscription share change')
         self.assertEqual(notifications_count, 1)
 
     def test_unfollow_project_creates_notification(self):
@@ -192,7 +229,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
 
         # Check if a record is added to the Notification table
-        notifications_count = self.get_notification_count('follower(s) list changed')
+        notifications_count = self.get_notification_count('Project follower list or subscription share change')
         self.assertEqual(notifications_count, 2)
 
     def test_subscription_creates_notification(self):
@@ -208,7 +245,7 @@ class NotificationsTestCase(TestCase):
         self.assertEqual(response.status_code, EXPECTED_STATUS['CREATED'])
 
         # Check if a record is added to the Notification table
-        notifications_count = self.get_notification_count('subscription changed')
+        notifications_count = self.get_notification_count('Project follower list or subscription share change')
 
         self.assertEqual(notifications_count, 1)
 
@@ -219,13 +256,11 @@ class NotificationsTestCase(TestCase):
         self.authenticate(0)  # Authenticate as startup
 
         data = {
-            'email_on_followers_change': False,
-            'email_on_share_subscription': False,
+            'email_project_on_investor_interest_change': False
         }
         response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
-        self.assertFalse(response.data['email_on_followers_change'])
-        self.assertFalse(response.data['email_on_share_subscription'])
+        self.assertFalse(response.data['email_project_on_investor_interest_change'])
 
     def test_turn_off_in_app_notifications(self):
         """
@@ -234,13 +269,11 @@ class NotificationsTestCase(TestCase):
         self.authenticate(0)  # Authenticate as startup
 
         data = {
-            'in_app_on_followers_change': False,
-            'in_app_on_share_subscription': False,
+            'push_project_on_investor_interest_change': False
         }
         response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
-        self.assertFalse(response.data['in_app_on_followers_change'])
-        self.assertFalse(response.data['in_app_on_share_subscription'])
+        self.assertFalse(response.data['push_project_on_investor_interest_change'])
 
     def test_turn_off_all_notifications(self):
         """
@@ -249,17 +282,13 @@ class NotificationsTestCase(TestCase):
         self.authenticate(0)  # Authenticate as startup
 
         data = {
-            'email_on_followers_change': False,
-            'email_on_share_subscription': False,
-            'in_app_on_followers_change': False,
-            'in_app_on_share_subscription': False,
+            'email_project_on_investor_interest_change': False,
+            'push_project_on_investor_interest_change': False
         }
         response = self.client.put(self.urls['NOTIFICATION_DETAIL_URL'], data, format='json')
         self.assertEqual(response.status_code, EXPECTED_STATUS['OK'])
-        self.assertFalse(response.data['email_on_followers_change'])
-        self.assertFalse(response.data['email_on_share_subscription'])
-        self.assertFalse(response.data['in_app_on_followers_change'])
-        self.assertFalse(response.data['in_app_on_share_subscription'])
+        self.assertFalse(response.data['email_project_on_investor_interest_change'])
+        self.assertFalse(response.data['push_project_on_investor_interest_change'])
 
     def test_unauthorized_user_cannot_follow_project(self):
         """

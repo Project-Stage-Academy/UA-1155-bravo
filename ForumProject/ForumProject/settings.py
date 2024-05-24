@@ -269,7 +269,6 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = config('EMAIL_PORT')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS')
 
-
 CRYPTOGRAPHY_KEY = config('CRYPTOGRAPHY_KEY')
 
 CACHES = {
@@ -284,9 +283,7 @@ CACHES = {
 
 RATELIMIT_VIEW = 'communications.views.too_many_requests'
 
-
 try:
     from .local_settings import *
 except ImportError:
     pass
-
