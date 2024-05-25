@@ -63,11 +63,10 @@ import logging
 from django.http import JsonResponse
 
 
-
-
 User = get_user_model()
 
 logger = logging.getLogger('django.server')
+
 
 @login_required
 @ratelimit(key='user', rate='5/m', block=True)
