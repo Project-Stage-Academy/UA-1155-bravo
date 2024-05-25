@@ -1,10 +1,20 @@
-from django.db import models
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from startups.models import Startup
-from investors.models import Investor
+"""
+This module defines the models for projects, project files, investor-project relationships
+and project logs.
+
+Classes:
+    Project: Represents a project associated with a startup.
+    ProjectFiles: Represents files associated with a project.
+    InvestorProject: Represents the relationship between an investor and a project.
+    ProjectLog: Represents a log entry for project-related events.
+"""
+
 import os
 import logging
-from datetime import datetime
+from django.db import models
+from django.core.exceptions import ValidationError
+from startups.models import Startup
+from investors.models import Investor
 
 
 logger = logging.getLogger(__name__)
@@ -60,7 +70,14 @@ class Project(models.Model):
 
 
 class ProjectFiles(models.Model):
+    """
+    Model representing files associated with a project.
 
+    Attributes:
+        project (ForeignKey): The related Project instance.
+        file_description (str): A description of the file.
+        file (FileField): The file being uploaded.
+    """
     def _generate_upload_path(self, filename):
         """
         The function creates a valid path for each Project's documentation upload
@@ -79,7 +96,7 @@ class ProjectFiles(models.Model):
 
             # Replace spaces in the filename with underscores
             filename = filename.replace(" ", "_")
-            
+
             # Create a unique file path
             full_path = os.path.join(folder_path, filename)
 
@@ -117,16 +134,25 @@ class ProjectFiles(models.Model):
         verbose_name = 'Project File'
         verbose_name_plural = 'Project Files'
         ordering = ['project']
-    
+
     def clean(self):
+        """
+        Validate the ProjectFiles instance.
+
+        Ensures that the file description is not empty.
+        """
         if not self.file_description.strip():
             raise ValidationError("File description cannot be empty.")
 
 
 class InvestorProject(models.Model):
     """
-    Model represents the relationship between an Investor and a Project,
-    including the percentage share the Investor holds in the Project.
+    Model representing the relationship between an Investor and a Project.
+
+    Attributes:
+        investor (ForeignKey): The related Investor instance.
+        project (ForeignKey): The related Project instance.
+        share (int): The percentage share the Investor holds in the Project.
     """
     investor = models.ForeignKey(Investor, on_delete=models.CASCADE, db_index=True,
                                  related_name='shortlisted_project')
@@ -146,6 +172,12 @@ class InvestorProject(models.Model):
         ]
 
     def __str__(self):
+        """
+        Return a string representation of the InvestorProject instance.
+
+        Returns:
+            str: A string representing the investor's interest in the project.
+        """
         return (f'Interest of {self.investor} in Project {self.project} '
                 f'has changed, current subscription proposal: {self.share}%')
 
@@ -176,7 +208,7 @@ class InvestorProject(models.Model):
         except Exception as e:
             print(f"An error occurred while calculating total funding: {e}")
         return 0.0
-        
+
 
 class ProjectLog(models.Model):
     """
@@ -199,11 +231,11 @@ class ProjectLog(models.Model):
         modified_state (str): A textual representation of the state after the change.
     """
     project = models.ForeignKey(
-        Project, 
-        null=True, 
-        on_delete=models.SET_NULL, 
-        related_name='project_log', 
-        db_index=True, 
+        Project,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='project_log',
+        db_index=True,
         verbose_name="Project in DB")
     project_birth_id = models.IntegerField(verbose_name='id')
     change_date = models.DateField(auto_now_add=True, db_index=True)

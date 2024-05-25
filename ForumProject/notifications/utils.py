@@ -1,9 +1,19 @@
-from django.core.mail import send_mail
+"""
+Utility for sending email notifications asynchronously.
+
+This module defines a function for sending email notifications and handles potential
+errors during the process.
+
+Functions:
+    send_email_async: Sends email notifications asynchronously.
+"""
+
+import logging
 from django.conf import settings
 from django.core.mail import EmailMessage
-import logging
 
 logger = logging.getLogger(__name__)
+
 
 def send_email_async(subject, message, recipients):
     """

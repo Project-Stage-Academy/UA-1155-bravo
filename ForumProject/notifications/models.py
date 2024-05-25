@@ -1,16 +1,30 @@
+"""
+Module for models related to notifications.
+
+This module contains models for notifications and their associated preferences.
+
+Classes:
+    Notification: Model for storing notifications.
+    StartupNotificationPrefs: Model for storing notification preferences for startups.
+    InvestorNotificationPrefs: Model for storing notification preferences for investors.
+"""
+
 from django.db import models
 from projects.models import Project
 from investors.models import Investor
 from startups.models import Startup
 
+
 class Notification(models.Model):
     # Choices for the trigger field
     TRIGGER_CHOICES = [
         # with this trigger, Project owners should receive Notification
-        ('Project follower list or subscription share change', 'Project follower list or subscription share change'),
+        ('Project follower list or subscription share change', 'Project follower list or '
+                                                               'subscription share change'),
         # with this trigger, owners of Investors that follow Project should receive Notification
         ('Project profile changed', 'Project profile changed'),
-        # with this trigger, owners of Investors that subscribed for Startup should receive a Notification
+        # with this trigger, owners of Investors that subscribed for Startup should receive a
+        # Notification
         ('Startup profile updated', 'Startup profile updated'),
         # with this trigger, Startup owners should receive a Notification
         ('Startup subscribers list changed', 'Startup subscribers list changed'),
@@ -42,7 +56,6 @@ class Notification(models.Model):
             addressee = f'Investor {investor_name}' if investor_name else 'Unknown'
 
         return f'Notification of {self.date_time} to {addressee} on Project {project_name}'
-
 
     class Meta:
         # Add model-level constraint
@@ -93,8 +106,6 @@ class StartupNotificationPrefs(models.Model):
     def save(self, *args, **kwargs):
         self.update_active_preferences()
         super().save(*args, **kwargs)
-
-
 
 
 class InvestorNotificationPrefs(models.Model):

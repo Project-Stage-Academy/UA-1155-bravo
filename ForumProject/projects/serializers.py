@@ -1,3 +1,17 @@
+"""
+Module containing serializers for the Project-related models.
+
+This module defines serializers for handling the serialization and deserialization of Project,
+ProjectFiles, InvestorProject, and ProjectLog instances. Each serializer includes attributes for
+model fields, validation methods, and methods for creating and updating instances.
+
+Classes:
+    ProjectSerializer: Serializer for the Project model.
+    ProjectFilesSerializer: Serializer for the ProjectFiles model.
+    InvestorProjectSerializer: Serializer for the InvestorProject model.
+    ProjectLogSerializer: Serializer for the ProjectLog model.
+"""
+
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 from startups.models import Startup
@@ -24,6 +38,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     """    
     
     startup = serializers.PrimaryKeyRelatedField(read_only=True)
+
     class Meta:
         model = Project
         fields = ['id',
@@ -38,19 +53,27 @@ class ProjectSerializer(serializers.ModelSerializer):
                   'budget_currency',
                   'budget_amount',
                   'project_share',
-                  'project_log'
-                 ]
-        read_only_fields = ['id', 'startup', 'created_at', 'updated_at', 'project_share', 'project_log']
+                  'project_log']
+        read_only_fields = ['id',
+                            'startup',
+                            'created_at',
+                            'updated_at',
+                            'project_share',
+                            'project_log']
             
     def create(self, validated_data):
-        '''
+        """
         Create a new Project instance and associate it with a specific Startup.
 
-        This method handles the creation of a new Project instance based on the validated data from the request. 
-        It ensures that the user has a selected Startup company, and checks whether the specified Startup exists 
-        and belongs to the current user. If all validations pass, it creates and returns a new Project.
+        This method handles the creation of a new Project instance based on the validated data from
+         the request.
+        It ensures that the user has a selected Startup company, and checks whether the specified
+         Startup exists
+        and belongs to the current user. If all validations pass, it creates and returns a new
+         Project.
         
-        It also validates the uniqueness of the project name using the `validate_project_name` method.
+        It also validates the uniqueness of the project name using the `validate_project_name`
+         method.
 
         Parameters:
             validated_data (dict): Data validated by the serializer.
@@ -59,8 +82,9 @@ class ProjectSerializer(serializers.ModelSerializer):
             Project: The newly created Project instance.
 
         Raises:
-            serializers.ValidationError: If the user has no associated Startup company, or if the specified Startup does not exist.
-        '''
+            serializers.ValidationError: If the user has no associated Startup company, or if the
+            specified Startup does not exist.
+        """
         user = self.context['request'].user
         startup_id = user.user_info.company_id
 
@@ -72,7 +96,8 @@ class ProjectSerializer(serializers.ModelSerializer):
         try:
             startup = Startup.objects.get(id=startup_id)
         except ObjectDoesNotExist:
-            raise serializers.ValidationError(f"Startup with ID {startup_id} does not exist or does not belong to you.")
+            raise serializers.ValidationError(f"Startup with ID {startup_id} does not exist or does"
+                                              f" not belong to you.")
         validated_data['startup'] = startup
         
         # Create a new project
@@ -81,13 +106,14 @@ class ProjectSerializer(serializers.ModelSerializer):
         return project
     
     def update(self, instance, validated_data):
-        '''
+        """
         Update an existing Project instance with new validated data.
 
-        This method updates the attributes of an existing Project with the provided validated data 
+        This method updates the attributes of an existing Project with the provided validated data
         and saves the changes to the database.
-        
-        It also validates the uniqueness of the project name using the `validate_project_name` method.
+
+        It also validates the uniqueness of the project name using the `validate_project_name`
+         method.
 
         Parameters:
             instance (Project): The existing Project instance to be updated.
@@ -95,7 +121,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         Returns:
             Project: The updated Project instance.
-        '''
+        """
         # Iterate over the validated data and set the corresponding attributes on the instance
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -115,10 +141,12 @@ class ProjectSerializer(serializers.ModelSerializer):
             value (str): The Project name to validate.
 
         Returns:
-            str: The validated Project name (with leading white space(s) truncated and first letter capitalized).
+            str: The validated Project name (with leading white space(s) truncated and first letter
+            capitalized).
 
         Raises:
-            serializers.ValidationError: If a Project with the same name already exists for the Startup.
+            serializers.ValidationError: If a Project with the same name already exists for the
+            Startup.
         """
         
         value = value.strip()
@@ -127,36 +155,38 @@ class ProjectSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Project name cannot be empty.")
         startup_id = self.context['request'].user.user_info.company_id
         if self.instance:
-            if Project.objects.filter(startup_id=startup_id, name=value).exclude(id=self.instance.id).exists():
+            if Project.objects.filter(
+                    startup_id=startup_id, name=value).exclude(id=self.instance.id).exists():
                 raise serializers.ValidationError("Project name must be unique for this Startup.")
         else:
             if Project.objects.filter(startup_id=startup_id, name=value).exists():
                 raise serializers.ValidationError("Project name must be unique for this Startup.")
         return value
     
+
 class ProjectFilesSerializer(serializers.ModelSerializer):
-    '''
+    """
     Serializer for the ProjectFiles model.
 
-    This serializer is used to handle Project-related files, providing validation and serialization logic 
-    for the fields associated with Project files.
+    This serializer is used to handle Project-related files, providing validation and serialization
+    logic for the fields associated with Project files.
 
     Attributes:
         id (int): The unique identifier for the ProjectFile (read-only).
         project (Project): The related Project instance.
         file_description (str): A description for the file.
         file (FileField): The uploaded file.
-    '''
+    """
     class Meta:
         model = ProjectFiles
         fields = ['id', 'project', 'file_description', 'file']
         read_only_fields = ['id', 'project']
 
     def validate_file_description(self, value):
-        '''
+        """
         Validate the description for a Project file to ensure it is not empty.
 
-        This method validates that the file description is not just whitespace 
+        This method validates that the file description is not just whitespace
         and contains meaningful content.
 
         Parameters:
@@ -166,18 +196,19 @@ class ProjectFilesSerializer(serializers.ModelSerializer):
             str: The validated file description.
 
         Raises:
-            serializers.ValidationError: If the file description is empty or contains only whitespace.
-        '''
+            serializers.ValidationError: If the file description is empty or contains only
+            whitespace.
+        """
         if not value.strip():
             raise serializers.ValidationError("File description cannot be empty.")
         return value
     
 
 class InvestorProjectSerializer(serializers.ModelSerializer):
-    '''
+    """
     Serializer for the InvestorProject model.
 
-    This serializer is responsible for serializing and deserializing `InvestorProject` instances. 
+    This serializer is responsible for serializing and deserializing `InvestorProject` instances.
     It defines the structure for serializing these instances and manages the read-only fields.
 
     Attributes:
@@ -185,7 +216,7 @@ class InvestorProjectSerializer(serializers.ModelSerializer):
         investor (User): The investor associated with the project (read-only).
         project (Project): The project associated with the investor (read-only).
         share (float): The share of the project owned by the investor.
-    '''
+    """
     class Meta:
         model = InvestorProject
         fields = ['id', 'investor', 'project', 'share']
@@ -193,11 +224,12 @@ class InvestorProjectSerializer(serializers.ModelSerializer):
 
 
 class ProjectLogSerializer(serializers.ModelSerializer):
-    '''
+    """
     Serializer for the ProjectLog model.
 
-    This serializer handles the serialization and deserialization of `ProjectLog` instances. 
-    It defines the structure for serializing the project log data and includes read-only fields to prevent modification of logged information.
+    This serializer handles the serialization and deserialization of `ProjectLog` instances.
+    It defines the structure for serializing the project log data and includes read-only fields to
+    prevent modification of logged information.
 
     Attributes:
         id (int): The ID of the ProjectLog (read-only).
@@ -208,7 +240,7 @@ class ProjectLogSerializer(serializers.ModelSerializer):
         action (str): The action performed on the project.
         previous_state (str): The previous state of the project or its components.
         modified_state (str): The new or modified state of the project or its components.
-    '''
+    """
     class Meta:
         model = ProjectLog
         fields = ['id',
