@@ -4,6 +4,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
+from rest_framework.response import Response
 from django.db import transaction
 import copy, random, string
 from users.models import UserRoleCompany, CustomUser, UserStartup, UserInvestor
@@ -18,7 +19,8 @@ class ProjectsTestCase(TestCase):
 
     This class provides test cases for creating, updating, viewing, and deleting projects,
     as well as for following and subscribing to projects.
-    """    
+    """
+
     @staticmethod
     def visit_endpoint(url_name, token, method='POST', data={}, kwargs=None):
         """
@@ -42,12 +44,12 @@ class ProjectsTestCase(TestCase):
         elif method.upper() == 'PUT':
             return client.put(reverse(url_name, kwargs={'pk': kwargs}), data, format='json')
         elif method.upper() == 'DELETE':
-            return client.delete(reverse(url_name, kwargs=kwargs) if kwargs else 
+            return client.delete(reverse(url_name, kwargs=kwargs) if kwargs else
                                  reverse(url_name), data, format='json')
         else:
-            return client.post(reverse(url_name, kwargs=kwargs) if kwargs else 
+            return client.post(reverse(url_name, kwargs=kwargs) if kwargs else
                                reverse(url_name), data, format='json')
-        
+
     @classmethod
     def follow_or_subscribe(cls, token_owner, pk, action='follow'):
         """
@@ -65,9 +67,9 @@ class ProjectsTestCase(TestCase):
             f'projects:{action}',
             cls.tokens[token_owner.email],
             'POST',
-            kwargs = pk
+            kwargs=pk
         )
-    
+
     @staticmethod
     def random_string(length=10):
         """
@@ -80,7 +82,7 @@ class ProjectsTestCase(TestCase):
             str: Randomly generated string.
         """
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-    
+
     @classmethod
     def random_email(cls, length=1):
         """
@@ -93,7 +95,7 @@ class ProjectsTestCase(TestCase):
             str: Randomly generated email address.
         """
         return f'{cls.random_string(length)}@user.com'
-    
+
     @staticmethod
     def max_length(field):
         """
@@ -107,7 +109,6 @@ class ProjectsTestCase(TestCase):
         """
         return CustomUser._meta.get_field(field).max_length
 
-    
     @classmethod
     def create_user(cls):
         """
@@ -124,7 +125,7 @@ class ProjectsTestCase(TestCase):
             password=cls.random_string(random.randint(10, 20)),
             is_active=True
         )
-    
+
     @classmethod
     @transaction.atomic
     def setUpTestData(cls):
@@ -139,37 +140,60 @@ class ProjectsTestCase(TestCase):
         cls.user_startuper = cls.create_user()
         refresh = RefreshToken.for_user(cls.user_startuper)
         cls.tokens[cls.user_startuper.email] = str(refresh.access_token)
-        
+
         # Assign role to user_startuper, create a Startup and select it for the esuer_startuper
         startuper_role = UserRoleCompany.objects.create(user=cls.user_startuper, role='startup')
         cls.startup_test = Startup.objects.create(
-            startup_name = 'Python online',
-            startup_industry = 'IT',
-            startup_phone = '+380987654321',
-            startup_country = 'UA',
-            startup_city = 'Lviv',
-            startup_address = 'Sirka 56'
+            startup_name='Python online',
+            startup_industry='IT',
+            startup_phone='+380987654321',
+            startup_country='UA',
+            startup_city='Lviv',
+            startup_address='Sirka 56'
         )
-        UserStartup.objects.create(customuser=cls.user_startuper, startup=cls.startup_test, startup_role_id=1)
+        UserStartup.objects.create(
+            customuser=cls.user_startuper,
+            startup=cls.startup_test,
+            startup_role_id=1
+        )
         startuper_role.company_id = cls.startup_test.pk
         startuper_role.save()
-        
+
         cls.user_investor = cls.create_user()
         refresh = RefreshToken.for_user(cls.user_investor)
         cls.tokens[cls.user_investor.email] = str(refresh.access_token)
-        
+
         # Assign role to user_investor, create an InvestCo and select it for the user_investor
         investor_role = UserRoleCompany.objects.create(user=cls.user_investor, role='investor')
         cls.investor_test = Investor.objects.create(
-            investor_name = 'Piggy bank',
-            investor_industry = 'IT',
-            investor_phone = '+380448889900',
-            investor_country = 'UA',
-            investor_city = 'Odessa',
-            investor_address = 'Stusya 11'
+            investor_name='Piggy bank',
+            investor_industry='IT',
+            investor_phone='+380448889900',
+            investor_country='UA',
+            investor_city='Odessa',
+            investor_address='Stusya 11'
         )
-        UserInvestor.objects.create(customuser=cls.user_investor, investor=cls.investor_test, investor_role_id=1)
+        UserInvestor.objects.create(customuser=cls.user_investor, investor=cls.investor_test,
+                                    investor_role_id=1)
         investor_role.company_id = cls.investor_test.pk
+        investor_role.save()
+
+        cls.user_investor2 = cls.create_user()
+        refresh = RefreshToken.for_user(cls.user_investor2)
+        cls.tokens[cls.user_investor2.email] = str(refresh.access_token)
+
+        investor_role = UserRoleCompany.objects.create(user=cls.user_investor2, role='investor')
+        cls.investor2_test = Investor.objects.create(
+            investor_name='Investor Two',
+            investor_industry='Finance',
+            investor_phone='+123456787',
+            investor_country='USA',
+            investor_city='New York',
+            investor_address='789 Wall Street'
+        )
+        UserInvestor.objects.create(customuser=cls.user_investor2, investor=cls.investor2_test,
+                                    investor_role_id=1)
+        investor_role.company_id = cls.investor2_test.pk
         investor_role.save()
 
         # create a Project that belongs to startup_test
@@ -181,10 +205,12 @@ class ProjectsTestCase(TestCase):
             'budget_amount': 9000
         }
         cls.project_create_response = cls.visit_endpoint(
-            'projects:project-list', 
+            'projects:project-list',
             cls.tokens[cls.user_startuper.email],
-            data = cls.project_test_data
+            data=cls.project_test_data
         )
+        cls.project = Project.objects.first()
+        cls.project_test = cls.project
 
     # Group of test regarding creation of a Project
     def test_ok_project_created_by_startuper(self):
@@ -195,9 +221,9 @@ class ProjectsTestCase(TestCase):
 
     def test_fail_project_creation_by_investor(self):
         response = self.visit_endpoint(
-            'projects:project-list', 
+            'projects:project-list',
             self.tokens[self.user_investor.email],
-            data = self.project_test_data
+            data=self.project_test_data
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertIn('You do not have permission to perform this action.', response.data['detail'])
@@ -211,9 +237,9 @@ class ProjectsTestCase(TestCase):
             'budget_amount': 3000
         }
         response = self.visit_endpoint(
-            'projects:project-list', 
+            'projects:project-list',
             self.tokens[self.user_startuper.email],
-            data = project_2_data
+            data=project_2_data
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Project name must be unique for this Startup.', response.data[0])
@@ -229,9 +255,9 @@ class ProjectsTestCase(TestCase):
                 'budget_amount': 3000 + i
             }
             response = self.visit_endpoint(
-                'projects:project-list', 
+                'projects:project-list',
                 self.tokens[self.user_startuper.email],
-                data = project_data
+                data=project_data
             )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Project.objects.count(), 3)
@@ -249,10 +275,10 @@ class ProjectsTestCase(TestCase):
         projects = [project_1_data, project_2_data]
         for project in projects:
             response = self.visit_endpoint(
-                    'projects:project-list', 
-                    self.tokens[self.user_startuper.email],
-                    data = project
-                )
+                'projects:project-list',
+                self.tokens[self.user_startuper.email],
+                data=project
+            )
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Project.objects.count(), 1)
 
@@ -263,21 +289,21 @@ class ProjectsTestCase(TestCase):
         project = copy.deepcopy(self.project_test_data)
         project['name'] = 'Second Project'
         self.visit_endpoint(
-            'projects:project-list', 
+            'projects:project-list',
             self.tokens[self.user_startuper.email],
-            data = project
+            data=project
         )
         self.assertEqual(Project.objects.count(), 2)
         for field in fields:
             suffix = '1' if isinstance(project[field], str) else 1
             project[field] += suffix
             response = self.visit_endpoint(
-                    'projects:project-detail', 
-                    self.tokens[self.user_startuper.email],
-                    'PUT',
-                    project,
-                    kwargs = 2
-                )
+                'projects:project-detail',
+                self.tokens[self.user_startuper.email],
+                'PUT',
+                project,
+                kwargs=2
+            )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_fail_change_project_by_not_owner(self):
@@ -289,30 +315,30 @@ class ProjectsTestCase(TestCase):
             'budget_amount': 9000
         }
         response = self.visit_endpoint(
-                    'projects:project-detail', 
-                    self.tokens[self.user_investor.email],
-                    'PUT',
-                    data_with_amended_description,
-                    kwargs = self.project_create_response.data['id']
-                )
+            'projects:project-detail',
+            self.tokens[self.user_investor.email],
+            'PUT',
+            data_with_amended_description,
+            kwargs=self.project_create_response.data['id']
+        )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     # Group of tests regarding viewing a Project
     def test_ok_ivestor_access(self):
         response = self.visit_endpoint(
-            'projects:project-detail', 
+            'projects:project-detail',
             self.tokens[self.user_investor.email],
             'GET',
-            kwargs = self.project_create_response.data['id']
+            kwargs=self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_ok_owner_access(self):
         response = self.visit_endpoint(
-            'projects:project-detail', 
+            'projects:project-detail',
             self.tokens[self.user_startuper.email],
             'GET',
-            kwargs = self.project_create_response.data['id']
+            kwargs=self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -330,24 +356,24 @@ class ProjectsTestCase(TestCase):
                 self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
             else:
                 self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-    
+
     # Group of tests regarding Project deletion
     @transaction.atomic
     def test_ok_owner_deletion(self):
         local_project_data = copy.deepcopy(self.project_test_data)
         local_project_data['name'] = 'Different name'
         local_project = self.visit_endpoint(
-            'projects:project-list', 
+            'projects:project-list',
             self.tokens[self.user_startuper.email],
-            data = local_project_data
+            data=local_project_data
         )
         self.assertEqual(Project.objects.count(), 2)
         self.assertTrue(Project.objects.get(name=local_project.data['name']))
         deletion_response = self.visit_endpoint(
-            'projects:project-detail', 
+            'projects:project-detail',
             self.tokens[self.user_startuper.email],
             'DELETE',
-            kwargs = {'pk': local_project.data['id']}
+            kwargs={'pk': local_project.data['id']}
         )
         self.assertEqual(Project.objects.count(), 1)
         self.assertFalse(Project.objects.filter(name=local_project_data['name']))
@@ -355,20 +381,20 @@ class ProjectsTestCase(TestCase):
 
     def test_fail_non_owner_deletion(self):
         deletion_response = self.visit_endpoint(
-            'projects:project-detail', 
+            'projects:project-detail',
             self.tokens[self.user_investor.email],
             'DELETE',
-            kwargs = {'pk': self.startup_test.pk}
+            kwargs={'pk': self.startup_test.pk}
         )
         self.assertEqual(Project.objects.count(), 1)
         self.assertEqual(deletion_response.status_code, status.HTTP_403_FORBIDDEN)
 
-    # def test_fail_attempt_delete_nonexisting_project(self):
+        # def test_fail_attempt_delete_nonexisting_project(self):
         deletion_response = self.visit_endpoint(
-            'projects:project-detail', 
+            'projects:project-detail',
             self.tokens[self.user_startuper.email],
             'DELETE',
-            kwargs = {'pk': 1000}
+            kwargs={'pk': 1000}
         )
         self.assertEqual(Project.objects.count(), 1)
         self.assertEqual(deletion_response.status_code, status.HTTP_404_NOT_FOUND)
@@ -376,19 +402,23 @@ class ProjectsTestCase(TestCase):
     # Group of tests regarding following / subscribing for Project
     def test_ok_investor_starts_follow(self):
         followed_projects = InvestorProject.objects.count()
-        response = self.follow_or_subscribe(self.user_investor, {'project_id': self.project_create_response.data['id']})
+        response = self.follow_or_subscribe(self.user_investor,
+                                            {'project_id': self.project_create_response.data['id']})
         newly_followed_count = InvestorProject.objects.count() - followed_projects
         self.assertEqual(newly_followed_count, 1)
-        self.assertTrue(InvestorProject.objects.filter(project=Project.objects.get(pk=self.project_create_response.data['id'])))
+        self.assertTrue(InvestorProject.objects.filter(
+            project=Project.objects.get(pk=self.project_create_response.data['id'])))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_fail_attempt_to_follow_already_followed(self):
         followed_projects = InvestorProject.objects.count()
-        response = self.follow_or_subscribe(self.user_investor, {'project_id': self.project_create_response.data['id']})
+        response = self.follow_or_subscribe(self.user_investor,
+                                            {'project_id': self.project_create_response.data['id']})
         newly_followed_count = InvestorProject.objects.count() - followed_projects
         self.assertEqual(newly_followed_count, 1)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        response = self.follow_or_subscribe(self.user_investor, {'project_id': self.project_create_response.data['id']})
+        response = self.follow_or_subscribe(self.user_investor,
+                                            {'project_id': self.project_create_response.data['id']})
         newly_followed_count = InvestorProject.objects.count() - followed_projects
         self.assertEqual(newly_followed_count, 1)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -397,19 +427,74 @@ class ProjectsTestCase(TestCase):
     def test_ok_investor_subscribes(self):
         share = 35
         response = self.follow_or_subscribe(
-            self.user_investor, 
-                {'project_id': self.project_create_response.data['id'], 'share': share},
-                'subscription'
-            )
+            self.user_investor,
+            {'project_id': self.project_create_response.data['id'],
+             'share': share}, 'subscription')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['message'], f'Project subscribed with share {share}.')
 
+    def test_no_investors_subscribe(self):
+        """
+        Test when there are no investors for the project.
+        """
+        total_funding = InvestorProject.get_total_funding(self.project.id)
+        self.assertEqual(total_funding, 0.0)
+
+    def test_subscription_valid_shares(self):
+        """
+        Test that two investors can subscribe with valid shares (20% and 40%).
+        """
+        response1 = self.visit_endpoint(
+            'projects:subscription',
+            self.tokens[self.user_investor.email],
+            data={'share': 20},
+            kwargs={'project_id': self.project.pk, 'share': 20}
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response1.data['message'], 'Project subscribed with share 20.')
+
+        # Investor 2 subscribes with 40%
+        response2 = self.visit_endpoint(
+            'projects:subscription',
+            self.tokens[self.user_investor2.email],
+            data={'share': 40},
+            kwargs={'project_id': self.project.pk, 'share': 40}
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response2.data['message'], 'Project subscribed with share 40.')
+
+    def test_subscription_invalid_shares(self):
+        """
+        Test that two investors cannot subscribe with invalid shares (40% and 80%).
+        """
+        # Investor 1 subscribes with 40%
+        response1 = self.visit_endpoint(
+            'projects:subscription',
+            self.tokens[self.user_investor.email],
+            data={'share': 40},
+            kwargs={'project_id': self.project.pk, 'share': 40}
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response1.data['message'], 'Project subscribed with share 40.')
+
+        # Investor 2 attempts to subscribe with 80%
+        response2 = self.visit_endpoint(
+            'projects:subscription',
+            self.tokens[self.user_investor2.email],
+            data={'share': 80},
+            kwargs={'project_id': self.project.pk, 'share': 80}
+        )
+        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Total share for the project cannot exceed 100%. '
+                      'Available share: 60.0%', response2.data['error'])
+
     def test_ok_investor_stops_follow(self):
         initial_follow_count = InvestorProject.objects.count()
-        self.follow_or_subscribe(self.user_investor, {'project_id': self.project_create_response.data['id']})
+        self.follow_or_subscribe(self.user_investor,
+                                 {'project_id': self.project_create_response.data['id']})
         response = self.follow_or_subscribe(
-            self.user_investor, 
-            {'project_id': self.project_create_response.data['id']}, 
+            self.user_investor,
+            {'project_id': self.project_create_response.data['id']},
             'delist_project'
         )
         final_follow_count = InvestorProject.objects.count()
@@ -422,45 +507,45 @@ class ProjectsTestCase(TestCase):
 
     def test_fail_investor_stops_follow_nonfollowed_project(self):
         self.assertTrue(Project.objects.get(pk=self.project_create_response.data['id']))
-        self.assertFalse(InvestorProject.objects.filter(project=Project.objects.get(pk=self.project_create_response.data['id'])))
+        self.assertFalse(InvestorProject.objects.filter(project=Project.objects.get(
+            pk=self.project_create_response.data['id'])))
         response = self.follow_or_subscribe(
-            self.user_investor, 
-            {'project_id': self.project_create_response.data['id']}, 
+            self.user_investor,
+            {'project_id': self.project_create_response.data['id']},
             'delist_project'
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-    
+
     def test_fail_noninvestor_starting_follow(self):
         response = self.follow_or_subscribe(
-            self.user_startuper, 
+            self.user_startuper,
             {'project_id': self.project_create_response.data['id']}
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_fail_noninvestor_subscribing(self):
         response = self.follow_or_subscribe(
-            self.user_startuper, 
+            self.user_startuper,
             {'project_id': self.project_create_response.data['id'], 'share': 15},
             'subscription'
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-
     # Group of tests viewing Project Logs
     def test_ok_owner_views_logs(self):
         response = self.visit_endpoint(
-            'projects:view_logs', 
+            'projects:view_logs',
             self.tokens[self.user_startuper.email],
             'GET',
-            kwargs = self.project_create_response.data['id']
+            kwargs=self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_fail_nonowner_viewing_logs(self):
         response = self.visit_endpoint(
-            'projects:view_logs', 
+            'projects:view_logs',
             self.tokens[self.user_investor.email],
             'GET',
-            kwargs = self.project_create_response.data['id']
+            kwargs=self.project_create_response.data['id']
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
