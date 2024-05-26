@@ -1,19 +1,18 @@
-from rest_framework.response import Response
-from rest_framework import status, viewsets, permissions, pagination
-from rest_framework.decorators import action
-from .models import SubscribeInvestorStartup
-from .serializers import SubscribeInvestorStartupSerializer
-from users.models import UserInvestor
-from startups.models import Startup  
-from startups.serializers import StartupSerializer
+from django.core.paginator import EmptyPage
+
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, pagination, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from startups.filters import StartupFilter
-from rest_framework import filters
-from rest_framework.permissions import IsAuthenticated
+from startups.models import Startup
+from startups.serializers import StartupSerializer
+from users.models import UserInvestor
 from users.permissions import IsInvestorCompanySelected, IsInvestorRole
 from .filters import MySubscriptionFilter
-from rest_framework.pagination import PageNumberPagination
-from django.core.paginator import EmptyPage
+from .models import SubscribeInvestorStartup
+from .serializers import SubscribeInvestorStartupSerializer
 
 
 class CustomPagination(pagination.PageNumberPagination):
@@ -48,7 +47,6 @@ class CustomPagination(pagination.PageNumberPagination):
 class AddSubscription(viewsets.ModelViewSet):
     """
     View for adding a subscription.
-
     """
     serializer_class = SubscribeInvestorStartupSerializer
     pagination_class = CustomPagination
@@ -56,7 +54,6 @@ class AddSubscription(viewsets.ModelViewSet):
     filterset_class = StartupFilter
     permission_classes = [IsInvestorRole, IsInvestorCompanySelected]
 
-    
     def get_queryset(self):
         """
         Get the queryset for startups.
@@ -82,7 +79,6 @@ class AddSubscription(viewsets.ModelViewSet):
         """
         return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-
     def list(self, request, *args, **kwargs):
         """
         List all startups with pagination.
@@ -100,8 +96,7 @@ class AddSubscription(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         serializer = StartupSerializer(queryset, many=True)
         return Response(serializer.data)
-    
-    
+
     def create(self, request):
         """
         Create a new subscription for a startup.
@@ -158,7 +153,6 @@ class SubscriptionMixin:
         """
         return SubscribeInvestorStartup.objects.filter(investor=user_investor)
 
-
 class SubscriptionViewsets(viewsets.ModelViewSet, SubscriptionMixin):
     """
     View for retrieving, and deleting a unique subscription.
@@ -211,7 +205,7 @@ class SubscriptionViewsets(viewsets.ModelViewSet, SubscriptionMixin):
             Response: Subscription details with startup details.
         """
         return self.get_subscription_with_startup_details(pk)
-    
+
     def list(self, request, *args, **kwargs):
         """
         List all subscriptions with startup details.
