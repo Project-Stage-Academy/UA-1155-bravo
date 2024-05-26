@@ -90,12 +90,6 @@ def index_view(request):
 @login_required
 @ratelimit(key='user', rate='5/m', block=True)
 def room_view(request, user_id):
-    user = get_object_or_404(User, id=user_id)
-    if request.user.id > user.id:
-        thread_name = f'chat_{request.user.id}_{user.id}'
-    else:
-        thread_name = f'chat_{user.id}_{request.user.id}'
-    chat_room, created = Room.objects.get_or_create(name=thread_name)
     try:
         user = get_object_or_404(User, id=user_id)
         user_role = UserRoleCompany.objects.filter(user=request.user).exists()
@@ -118,7 +112,7 @@ def room_view(request, user_id):
     logger.info(f"User with email {request.user.email} viewed the chat room with user ID {user_id}")
 
     return render(request, 'room.html', {
-        'room': chat_room
+        'room': chat_room, 'users_messages': users_messages
     })
 
 

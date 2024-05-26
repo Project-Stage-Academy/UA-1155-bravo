@@ -73,7 +73,6 @@ class CommunicationsViewTest(TestCase):
             'startup_address': 'I Franka 123'
         }
 
-
     def tearDown(self):
         '''
         Teardown that is executed after each test case.
