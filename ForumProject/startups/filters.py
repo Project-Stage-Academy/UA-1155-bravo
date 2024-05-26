@@ -4,7 +4,6 @@ from projects.models import Project
 from django_countries import countries
 
 
-
 class CharFilterInFilter(dfilters.BaseInFilter, dfilters.CharFilter):
     """
     A custom filter for filtering based on a list of values.
@@ -15,7 +14,6 @@ class CharFilterInFilter(dfilters.BaseInFilter, dfilters.CharFilter):
 
     """
     pass
-
 
 class StartupFilter(dfilters.FilterSet):
     """
@@ -36,7 +34,7 @@ class StartupFilter(dfilters.FilterSet):
     startup_country = dfilters.ChoiceFilter(
         label='startup country',
         choices=countries,
-    
+
     )
     project_status = dfilters.ChoiceFilter(
         field_name='projects__project_status',
@@ -44,9 +42,6 @@ class StartupFilter(dfilters.FilterSet):
         choices=Project.PROJECT_STATUS_CHOICES
     )
 
-    
     class Meta:
         model = Startup
         fields = ['startup_name', 'startup_industry', 'project_status']
-
-

@@ -3,7 +3,6 @@ from django.core.exceptions import ValidationError
 from .validation import phone_regex, image_validator
 from django_countries.fields import CountryField
 
-
 class Startup(models.Model):
     """
     Model representing a startup.
@@ -17,7 +16,7 @@ class Startup(models.Model):
         startup_address (str): The address of the startup.
         startup_logo (ImageField): The logo of the startup.
     """
-    
+
     startup_name = models.CharField(max_length=150, unique=True) 
     startup_industry = models.CharField(max_length=50)
     startup_phone = models.CharField(max_length=20, validators=[phone_regex])
@@ -33,7 +32,7 @@ class Startup(models.Model):
         Returns:
             str: The name of the startup.
         """
-        
+
         return self.startup_name
 
     def clean(self):
@@ -43,6 +42,6 @@ class Startup(models.Model):
         Raises:
             ValidationError: If any required field is empty.
         """
-        
+
         if not self.startup_name or not self.startup_industry or not self.startup_phone or not self.startup_city or not self.startup_address:
             raise ValidationError("All fields must be filled in: name, industry, phone, country, city, address.")

@@ -9,4 +9,3 @@ class StartupAdmin(admin.ModelAdmin):
                     ]
 
 admin.site.register(Startup, StartupAdmin)
-
