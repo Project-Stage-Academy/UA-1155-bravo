@@ -1,19 +1,18 @@
-from django.shortcuts import render, get_object_or_404
-from rest_framework import viewsets, status, generics
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied, ValidationError, NotFound
-from projects.models import Project
-from users.permissions import IsStartupRole, IsInvestorRole, IsStartupCompanySelected, IsCompanyMember, IsStartupMember
 from django.core.exceptions import ValidationError
-from .models import Startup
-from users.models import UserStartup
-from .serializers import StartupSerializer
+
 from django_filters.rest_framework import DjangoFilterBackend
-from .filters import StartupFilter
-from rest_framework import filters
+from rest_framework import filters, generics, status, viewsets
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from projects.models import Project
+from users.models import UserStartup
+from users.permissions import (IsInvestorRole, IsStartupMember, IsStartupRole)
+from .filters import StartupFilter
+from .models import Startup
+from .serializers import StartupSerializer
 
 class StartupViewSet(viewsets.ModelViewSet):
     """
@@ -23,7 +22,7 @@ class StartupViewSet(viewsets.ModelViewSet):
         queryset (QuerySet): The queryset of Startup objects.
         serializer_class (Serializer): The serializer class for Startup objects.
     """
-    
+
     queryset = Startup.objects.all().order_by('id')
     serializer_class = StartupSerializer
 
@@ -48,7 +47,7 @@ class StartupViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
-    
+
     def get_object(self):
         """
         Retrieve and return the startup instance, or raise a 404 error if not found.
@@ -67,7 +66,7 @@ class StartupViewSet(viewsets.ModelViewSet):
             raise NotFound(f"No Startup found for primary key {pk}.")
         self.check_object_permissions(self.request, obj)  # Check object permissions.
         return obj
-    
+
     def create(self, request, *args, **kwargs):
         """
          Handle create requests to create a startup for a user.
@@ -98,23 +97,23 @@ class StartupViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
         except Startup.DoesNotExist:
             return Response({"error": "Startup not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         # Check if the user is the owner of the startup
         user_startup = UserStartup.objects.filter(customuser=request.user, startup=instance)
         if not user_startup.exists():
             return Response({"error": "You are not the owner of this startup."}, status=status.HTTP_403_FORBIDDEN)
-        
+
         serializer = self.get_serializer(instance, data=request.data, partial=kwargs.pop('partial', False))
         try:
             serializer.is_valid(raise_exception=True)
         except ValidationError as e:
             return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             self.perform_update(serializer)
         except Exception as e:
             return Response({"error": f"An error occurred while updating the startup: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
         return Response(serializer.data)
 
 
@@ -124,16 +123,16 @@ class StartupViewSet(viewsets.ModelViewSet):
         and all projects in the startup have the status - closed.
         """
         instance = self.get_object()
-        
+
         # Check if the user is the owner of the startup
         user_startup = UserStartup.objects.filter(customuser=request.user, startup=instance).first()
         if not user_startup:
             raise PermissionDenied("You are not the owner of this startup.")
-        
+
         # Checking whether the startup has open projects using a database query
         if Project.objects.filter(startup_id=instance.id).exclude(status='closed').exists():
             raise PermissionDenied("Cannot delete startup with ongoing projects.")
-        
+
         # If the startup has all projects closed and the user is the owner,
         # then deletion is possible
         instance.delete()
@@ -151,7 +150,6 @@ class StandardResultsSetPagination(PageNumberPagination):
         page_size (int): The default page size for pagination.
         page_size_query_param (str): The query parameter to specify the page size.
         max_page_size (int): The maximum allowed page size for pagination.
-
     """    
     page_size = 10
     page_size_query_param = 'page_size'
@@ -184,7 +182,7 @@ class StartupList(generics.ListAPIView):
         except AttributeError:
             return Response({"error": "You must log in and select a role"}, status=status.HTTP_403_FORBIDDEN)    
     
-    
+
 class StartupListDetailfilter(generics.ListAPIView):
     """
     A view to search startups.
@@ -202,9 +200,6 @@ class StartupListDetailfilter(generics.ListAPIView):
     serializer_class = StartupSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['^startup_name', '^startup_industry', '=startup_country']
-
-
-
 
 
 class PersonalStartupList(generics.ListAPIView):

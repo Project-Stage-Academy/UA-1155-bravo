@@ -132,6 +132,8 @@ def load_messages(request, room_id):
         'has_next': page_obj.has_next()
     })
 
+def too_many_requests(request, exception): 
+    return render(request, 'ratelimit.html', status=429)
 
 class CreateConversationView(generics.CreateAPIView):
     queryset = Room.objects.all()

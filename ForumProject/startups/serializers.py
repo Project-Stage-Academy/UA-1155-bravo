@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import Startup
-from django.core.exceptions import ValidationError
-import re
 
 class StartupSerializer(serializers.ModelSerializer):
     """
@@ -17,7 +15,7 @@ class StartupSerializer(serializers.ModelSerializer):
         startup_city (str): The city where the startup is located.
         startup_address (str): The address of the startup.
     """
-    
+
     class Meta:
         model = Startup
         fields = [
@@ -32,7 +30,6 @@ class StartupSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id']
 
-    
     def validate_startup_name(self, value):
         """
         Validate the startup name for non-empty and uniqueness.
@@ -62,5 +59,4 @@ class StartupSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Startup name must be unique.")
         
         return value
-
     
