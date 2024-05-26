@@ -21,11 +21,11 @@ class StartupCreationTestCase(TestCase):
         '''
         # Create a CustomUser for authentication
         cls.user = CustomUser.objects.create_user(
-            email='dummy@user.com',
-            first_name='John',
-            last_name='Doe',
-            phone_number='+3801234567',
-            password='password',
+            email='smarter@leon.com',
+            first_name='Harry',
+            last_name='Potter',
+            phone_number='+380948567',
+            password='harrypotter',
             is_active=True
         )
         
@@ -34,11 +34,11 @@ class StartupCreationTestCase(TestCase):
         cls.token = str(refresh.access_token)
 
         cls.investor_user = CustomUser.objects.create_user(
-                        email='investor@example.com',
-                        first_name='Investor',
-                        last_name='User',
-                        phone_number='+3801234567',
-                        password='password',
+                        email='example@investor.com',
+                        first_name='examinv',
+                        last_name='example',
+                        phone_number='+3804251633',
+                        password='example',
                         is_active=True
                 )
 
@@ -57,11 +57,11 @@ class StartupCreationTestCase(TestCase):
 
         # Sample data for testing
         self.startup = Startup.objects.create(startup_name='Django startups',
-                                              startup_industry='IT',
-                                              startup_phone='+3801234567',
-                                              startup_country='UA',
-                                              startup_city='Lviv',
-                                              startup_address='I Franka 123')
+                                              startup_industry='Games',
+                                              startup_phone='+3801234111',
+                                              startup_country='UG',
+                                              startup_city='Londoni',
+                                              startup_address='Kulparkivska')
         
         UserStartup.objects.create(customuser=self.user, startup=self.startup, startup_role_id=1)
         UserRoleCompany.objects.create(user=self.user, role='startup', company_id=self.startup.id)
@@ -69,24 +69,24 @@ class StartupCreationTestCase(TestCase):
 
         # Sample data for testing
         self.startup_data = {
-            'startup_name': 'Django Dribblers',
-            'startup_industry': 'IT',
-            'startup_phone': '+3801234562',
+            'startup_name': 'defaultstartup',
+            'startup_industry': 'default',
+            'startup_phone': '+3801455645',
             'startup_country': 'UA',
-            'startup_city': 'Lviv',
-            'startup_address': 'I Franka 123'
+            'startup_city': 'default',
+            'startup_address': 'default 123'
         }
     
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.investor_token)
         
         # Create investor profile
         self.investor_profile = Investor.objects.create(
-            investor_name='Test Investor',
-            investor_industry='IT',
-            investor_phone='+3801234567',
+            investor_name='Nature Investor',
+            investor_industry='Nature',
+            investor_phone='+3801999655',
             investor_country='UA',
-            investor_city='Test City',
-            investor_address='Test Address'
+            investor_city='Nature City',
+            investor_address='Nature Address'
         )
         
         # Associate investor profile with investor user and assign role
@@ -131,7 +131,7 @@ class StartupCreationTestCase(TestCase):
         response = self.create_startup(self.startup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Startup.objects.count(), 2) #created in SetUp and in test exsists 
-        self.assertEqual(Startup.objects.all()[1].startup_name, 'Django Dribblers')
+        self.assertEqual(Startup.objects.all()[1].startup_name, 'Defaultstartup')
 
     @transaction.atomic
     def test_ok_create_two_startups(self):
@@ -149,7 +149,7 @@ class StartupCreationTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Startup.objects.count(), 3)
 
-        self.assertEqual(Startup.objects.filter(startup_name='Django Dribblers').exists(), True)
+        self.assertEqual(Startup.objects.filter(startup_name='Defaultstartup').exists(), True)
         self.assertEqual(Startup.objects.filter(startup_name='Python catchers').exists(), True)
 
     @transaction.atomic
@@ -414,10 +414,10 @@ class StartupViewSetTestCase(APITestCase):
         # Create a CustomUser for authentication
         cls.user = CustomUser.objects.create_user(
             email='dummy@user.com',
-            first_name='John',
-            last_name='Doe',
-            phone_number='+3801234567',
-            password='password',
+            first_name='Alex',
+            last_name='Leon',
+            phone_number='+3801274120',
+            password='alexleon',
             is_active=True
         )
         
@@ -446,12 +446,12 @@ class StartupViewSetTestCase(APITestCase):
         
         # Create investor profile
         self.investor_profile = Investor.objects.create(
-            investor_name='Test Investor',
-            investor_industry='IT',
-            investor_phone='+3801234567',
-            investor_country='UA',
-            investor_city='Test City',
-            investor_address='Test Address'
+            investor_name='Inv examlpe',
+            investor_industry='Test',
+            investor_phone='+3802222231',
+            investor_country='UG',
+            investor_city='Inv examlpe',
+            investor_address='Inv examlpe 2'
         )
         
         # Associate investor profile with investor user and assign role
